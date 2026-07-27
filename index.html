@@ -9,26 +9,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --board:#0C0F14;
-    --panel:#141922;
-    --panel-2:#1B2230;
-    --panel-3:#242D3C;
-    --line:rgba(255,255,255,0.09);
-    --line-strong:rgba(255,255,255,0.17);
-    --text:#EAEEF3;
-    --text-dim:#98A3B2;
-    --text-faint:#616C7C;
-    --brand:#0051F9;
-    --brand-soft:#5A8CFF;
-    --amber:#F5B841;
-    --paper:#EEF1F4;
-    --ink:#191919;
-    --ink-dim:#4A5261;
-    /* phase hues (brand blue-forward) */
-    --inflight:#06D6C4;
-    --now:#3B82F6;
-    --next:#8B5CF6;
-    --later:#EC4899;
+    --bg:#FFFFFF; --bg-soft:#FBFCFD; --surface:#F1F4F8; --detail:#F4F6F9;
+    --line:rgba(25,25,25,0.10); --line-soft:rgba(25,25,25,0.07);
+    --ink:#191919; --ink-dim:#4A5261; --ink-faint:#7A8496; --ink-ghost:#98A3B2;
+    --brand:#0051F9; --brand-dark:#003ECC; --amber-ink:#8A6410; --amber-bg:#FFFBF0; --red:#C0392B;
+    --inflight:#0A8F82; --now:#1D5FD6; --next:#6D28D9; --later:#E2553D;
     --radius:14px;
     --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
     --display:'Archivo','Segoe UI',system-ui,sans-serif;
@@ -36,251 +21,268 @@
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{
-    margin:0;background:var(--board);color:var(--text);
-    font-family:var(--body);line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 80% -10%, rgba(0,81,249,0.12), transparent 60%),
-      radial-gradient(1000px 500px at 0% 0%, rgba(31,192,174,0.05), transparent 55%);
-  }
-  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{color:var(--brand-dark)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
 
-  /* ---------- Header ---------- */
-  header{padding:40px 0 26px;border-bottom:1px solid var(--line)}
-  .rr-logo{display:inline-block;margin:0 0 20px;text-decoration:none}
-  .rr-logo-svg{height:30px;width:auto;display:block}
-  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--brand-soft);margin:0 0 12px}
-  h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,58px);line-height:1.02;letter-spacing:-0.02em;margin:0}
-  h1 .platform{color:var(--brand-soft)}
-  .sub{max-width:640px;color:var(--text-dim);font-size:16px;margin:16px 0 0}
-  .meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--text-faint);letter-spacing:.04em}
-  .meta b{color:var(--text-dim);font-weight:500}
-  .phase-defs{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:30px;max-width:900px}
+  header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F6F8FB,#FFFFFF);padding:38px 0 30px}
+  .rr-logo{display:inline-block;margin-bottom:22px}
+  .rr-logo img{height:28px;width:auto;display:block}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--brand);margin:0 0 12px;font-weight:500}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,58px);line-height:1.02;letter-spacing:-0.028em;margin:0}
+  h1 span{color:var(--brand)}
+  .sub{max-width:640px;color:var(--ink-dim);font-size:16px;margin:16px 0 0;text-wrap:pretty}
+  .phase-defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;margin-top:32px;max-width:920px}
   .pdef{border-top:2px solid var(--accent);padding-top:13px}
   .pdef-tag{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:8px;font-weight:600}
-  .pdef p{margin:0;font-size:14px;line-height:1.55;color:var(--text-dim)}
-  .pdef-target{display:inline-block;margin-top:11px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:5px;padding:3px 8px}
-  @media (max-width:720px){.phase-defs{grid-template-columns:1fr;gap:0;margin-top:24px}.pdef{border-top:0;border-left:2px solid var(--accent);padding:3px 0 3px 15px;margin-bottom:14px}}
-  .confidential{display:inline-flex;align-items:center;gap:7px;color:var(--brand-soft)}
-  .confidential::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand)}
+  .pdef p{margin:0;font-size:14px;line-height:1.55;color:var(--ink-dim);text-wrap:pretty}
+  .pdef-target{display:inline-block;margin-top:11px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,#fff);background:color-mix(in srgb,var(--accent) 8%,#fff);border-radius:5px;padding:3px 8px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.04em}
+  .meta b{color:var(--ink-dim);font-weight:500}
+  .confidential{display:inline-flex;align-items:center;gap:7px;color:var(--brand)}
+  .confidential::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brand)}
 
-  /* ---------- Controls ---------- */
-  .controls{position:sticky;top:0;z-index:40;background:rgba(15,20,27,0.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 0}
-  .controls-inner{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
-  .seg button{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);background:none;border:0;padding:8px 13px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s}
-  .seg button:hover{color:var(--text)}
-  .seg button[aria-pressed="true"]{background:var(--panel-3);color:var(--text)}
-  .seg button .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;transform:translateY(-1px)}
-  .search{flex:1;min-width:180px;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 13px}
-  .search svg{flex:none;color:var(--text-faint)}
-  .search input{flex:1;background:none;border:0;outline:none;color:var(--text);font-family:var(--body);font-size:14px;padding:10px 0}
-  .search input::placeholder{color:var(--text-faint)}
-  .mp-toggle{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--text-dim);cursor:pointer;user-select:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 13px}
-  .mp-toggle input{appearance:none;width:34px;height:18px;border-radius:20px;background:var(--panel-3);position:relative;cursor:pointer;transition:background .18s;flex:none}
-  .mp-toggle input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--text-dim);transition:transform .18s,background .18s}
-  .mp-toggle input:checked{background:rgba(245,132,63,0.4)}
-  .mp-toggle input:checked::after{transform:translateX(16px);background:var(--now)}
-  .link-btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--text-dim);background:none;border:0;cursor:pointer;padding:9px 6px;text-transform:uppercase}
-  .link-btn:hover{color:var(--brand-soft)}
+  .viewbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .viewbar .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+  .seg button{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim);background:none;border:0;padding:9px 15px;border-radius:7px;cursor:pointer;font-weight:500;transition:background .15s,color .15s}
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-pressed="true"]{background:#fff;color:var(--brand);font-weight:600;box-shadow:0 1px 2px rgba(25,25,25,0.06)}
+  .seg .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-dim);background:#fff;border:1px solid rgba(25,25,25,0.14);border-radius:9px;padding:9px 14px;cursor:pointer}
+  .btn:hover{color:var(--brand);border-color:var(--brand)}
+  .btn[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+  .link-btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-dim);background:none;border:0;cursor:pointer;padding:9px 6px}
+  .link-btn:hover{color:var(--brand)}
+  .push-right{margin-left:auto}
 
-  /* ---------- Phase sections ---------- */
-  main{padding:34px 0 10px}
-  .phase{margin-bottom:14px;scroll-margin-top:80px}
-  .phase-head{display:flex;align-items:baseline;gap:16px;padding:22px 0 14px;border-top:1px solid var(--line)}
-  .phase:first-child .phase-head{border-top:0;padding-top:6px}
-  .phase-tag{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:5px 11px;border-radius:7px;color:var(--board);font-weight:600;white-space:nowrap}
-  .phase-title{font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-0.01em;margin:0}
-  .phase-desc{color:var(--text-faint);font-size:14px;margin-left:auto;text-align:right;max-width:340px}
-  .count{font-family:var(--mono);color:var(--text-faint);font-size:13px}
+  .controls{border-bottom:1px solid var(--line-soft);background:var(--bg-soft)}
+  .controls .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px}
+  .search{flex:1;min-width:200px;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid rgba(25,25,25,0.12);border-radius:10px;padding:0 13px}
+  .search svg{flex:none;color:var(--ink-ghost)}
+  .search input{flex:1;background:none;border:0;outline:none;color:var(--ink);font-family:var(--body);font-size:14px;padding:10px 0}
+  .search input::placeholder{color:var(--ink-ghost)}
 
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+  main{padding:30px 0 10px}
+  .phase{margin-bottom:16px;scroll-margin-top:110px}
+  .phase-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:14px;padding:22px 0 16px;border-top:1px solid var(--line)}
+  .phase-tag{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:5px 11px;border-radius:7px;color:#fff;font-weight:600;white-space:nowrap}
+  .phase-title{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-0.015em;margin:0}
+  .count{font-family:var(--mono);color:var(--ink-ghost);font-size:13px}
+  .phase-desc{color:var(--ink-faint);font-size:13.5px;margin-left:auto;text-align:right;max-width:360px;text-wrap:pretty}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:start}
 
-  /* ---------- Cards ---------- */
-  .card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:border-color .18s,transform .18s,box-shadow .18s}
-  .card:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,0.28)}
-  .card.open{grid-column:1/-1;transform:none}
-  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
-  .card-btn{width:100%;text-align:left;background:none;border:0;color:inherit;cursor:pointer;padding:16px 18px 16px 20px;font:inherit;display:block}
-  .card-top{display:flex;align-items:center;gap:12px;margin-bottom:11px}
-  .gate{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--accent);background:color-mix(in srgb, var(--accent) 14%, transparent);border:1px solid color-mix(in srgb, var(--accent) 34%, transparent);border-radius:6px;padding:3px 8px;letter-spacing:.02em;flex:none}
-  .mp-flag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--now);border:1px solid color-mix(in srgb,var(--now) 42%,transparent);border-radius:5px;padding:3px 6px;flex:none}
-  .verify-flag{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);border:1px dashed color-mix(in srgb,var(--amber) 48%,transparent);border-radius:5px;padding:3px 6px;flex:none}
+  .card{position:relative;background:#fff;border:1px solid rgba(25,25,25,0.11);border-left:4px solid var(--accent);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 2px rgba(25,25,25,0.04);transition:box-shadow .18s,border-color .18s}
+  .card:hover{box-shadow:0 8px 24px rgba(25,25,25,0.08)}
+  .card.open{grid-column:1/-1;box-shadow:0 12px 34px rgba(25,25,25,0.10);border-color:color-mix(in srgb,var(--accent) 45%,#fff);border-left-color:var(--accent)}
+  .card-btn{width:100%;text-align:left;background:none;border:0;color:inherit;cursor:pointer;padding:16px 44px 17px 18px;font:inherit;display:block}
+  .card-top{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+  .gate{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff);border:1px solid color-mix(in srgb,var(--accent) 34%,#fff);border-radius:6px;padding:3px 8px;flex:none}
+  .chg{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;border-radius:5px;padding:3px 7px;flex:none;color:var(--cc);background:color-mix(in srgb,var(--cc) 12%,#fff);border:1px solid color-mix(in srgb,var(--cc) 38%,#fff)}
+  .verify-flag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-ink);border:1px dashed rgba(245,184,65,0.85);background:var(--amber-bg);border-radius:5px;padding:3px 6px;flex:none}
   .effort{margin-left:auto;text-align:right;flex:none}
-  .effort .lab{font-family:var(--mono);font-size:12px;color:var(--text-dim);white-space:nowrap}
-  .effort .bar{height:4px;width:96px;background:var(--panel-3);border-radius:3px;margin-top:5px;overflow:hidden}
-  .effort .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;opacity:.75}
-  .card h3{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:-0.01em;margin:0 0 5px;color:var(--text)}
-  .card .subtext{color:var(--text-dim);font-size:14px;margin:0;padding-right:14px}
-  .chev{position:absolute;right:16px;bottom:15px;color:var(--text-faint);transition:transform .2s;pointer-events:none}
+  .effort .lab{font-family:var(--mono);font-size:12px;color:var(--ink-faint);white-space:nowrap}
+  .effort .bar{display:block;height:4px;width:92px;background:#EDF0F4;border-radius:3px;margin-top:5px;overflow:hidden}
+  .effort .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;opacity:.8}
+  .card h3{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:-0.012em;margin:0 0 5px}
+  .card .subtext{color:var(--ink-dim);font-size:14px;margin:0;text-wrap:pretty}
+  .chev{position:absolute;right:16px;bottom:15px;color:var(--ink-ghost);transition:transform .2s;pointer-events:none}
   .card.open .chev{transform:rotate(180deg)}
 
-  /* ---------- Detail panel ---------- */
-  .detail{display:none;background:var(--paper);color:var(--ink);border-top:1px solid rgba(0,0,0,0.06)}
-  .card.open .detail{display:block;animation:reveal .28s ease}
-  @keyframes reveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-  .detail-inner{padding:24px 26px 28px 26px;display:grid;grid-template-columns:1fr 1fr;gap:26px 34px}
-  .detail h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,0.09)}
-  .col-current .now-line{font-size:14px;color:var(--ink);background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:9px;padding:12px 14px;line-height:1.55}
-  .col-current .empty{color:var(--ink-dim);font-style:italic;font-size:14px}
+  .detail{display:none;background:var(--detail);border-top:1px solid rgba(25,25,25,0.08)}
+  .card.open .detail{display:block}
+  .detail-inner{padding:24px 26px 28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px 34px}
+  .detail h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .now-line{font-size:14px;background:#fff;border:1px solid var(--line-soft);border-radius:9px;padding:12px 14px;line-height:1.55;text-wrap:pretty}
+  .empty{color:var(--ink-faint);font-style:italic;font-size:14px}
   .ctx-list{margin:14px 0 0;padding-left:18px}
-  .ctx-list li{font-size:13.5px;line-height:1.55;color:var(--ink-dim);margin-bottom:8px}
-  .ctx-list li:last-child{margin-bottom:0}
+  .ctx-list li{font-size:13.5px;line-height:1.55;color:var(--ink-dim);margin-bottom:8px;text-wrap:pretty}
   .desired-list{list-style:none;margin:0;padding:0;counter-reset:d}
-  .desired-list li{counter-increment:d;position:relative;padding:9px 0 9px 34px;font-size:14.5px;line-height:1.5;border-bottom:1px solid rgba(0,0,0,0.055)}
+  .desired-list li{counter-increment:d;position:relative;padding:9px 0 9px 36px;font-size:14.5px;line-height:1.5;border-bottom:1px solid rgba(25,25,25,0.055);text-wrap:pretty}
   .desired-list li:last-child{border-bottom:0}
-  .desired-list li::before{content:counter(d,decimal-leading-zero);position:absolute;left:0;top:9px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 16%,#fff);border-radius:5px;padding:2px 5px;line-height:1.2}
-  .notes{grid-column:1/-1;background:#fff;border:1px solid rgba(0,0,0,0.08);border-left:3px solid var(--amber);border-radius:10px;padding:16px 18px}
-  .notes h4{border:0;padding:0;margin:0 0 10px;color:#8a6410}
-  .notes ul{margin:0;padding-left:18px}
-  .notes li{font-size:13.5px;line-height:1.55;color:var(--ink);margin-bottom:7px}
-  .notes li:last-child{margin-bottom:0}
-  .verify-note{grid-column:1/-1;font-family:var(--mono);font-size:12px;color:#8a6410;background:color-mix(in srgb,var(--amber) 12%,#fff);border:1px dashed color-mix(in srgb,var(--amber) 50%,transparent);border-radius:9px;padding:11px 14px;line-height:1.5}
+  .desired-list li::before{content:counter(d,decimal-leading-zero);position:absolute;left:0;top:10px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff);border-radius:5px;padding:2px 5px;line-height:1.2}
+  .verify-note{grid-column:1/-1;font-family:var(--mono);font-size:12px;color:var(--amber-ink);background:var(--amber-bg);border:1px dashed rgba(245,184,65,0.8);border-radius:9px;padding:11px 14px;line-height:1.55}
   .qa-block{grid-column:1/-1}
-  .qa{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:13px 15px 14px;margin-bottom:10px}
+  .qa{background:#fff;border:1px solid rgba(25,25,25,0.08);border-radius:10px;padding:13px 15px 14px;margin-bottom:10px}
   .qa:last-child{margin-bottom:0}
-  .qa .q{margin:0 0 9px;font-size:14px;line-height:1.5;color:var(--ink);font-weight:600;padding-left:26px;position:relative}
-  .qa .q::before{content:"Q";position:absolute;left:0;top:0;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:var(--ink);border-radius:4px;padding:2px 6px;line-height:1.3}
-  .qa .a{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink-dim);padding-left:26px;position:relative}
-  .qa .a::before{content:"A";position:absolute;left:0;top:0;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:#9aa4b0;border-radius:4px;padding:2px 6px;line-height:1.3}
-  .qa .a.red{color:#C0392B}
-  .qa .a.red::before{background:#C0392B}
-  .qa .ref{display:inline-block;margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 16%,#fff);border:1px solid color-mix(in srgb,var(--accent) 32%,#fff);border-radius:5px;padding:1px 7px;vertical-align:middle;white-space:nowrap}
+  .qa .q{margin:0 0 9px;font-size:14px;line-height:1.55;font-weight:600;padding-left:28px;position:relative;text-wrap:pretty}
+  .qa .q::before{content:"Q";position:absolute;left:0;top:1px;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:var(--ink);border-radius:4px;padding:2px 6px;line-height:1.3}
+  .qa .a{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink-dim);padding-left:28px;position:relative;text-wrap:pretty}
+  .qa .a::before{content:"A";position:absolute;left:0;top:1px;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:#9AA4B0;border-radius:4px;padding:2px 6px;line-height:1.3}
+  .qa .a.red{color:var(--red)}
+  .qa .a.red::before{background:var(--red)}
+  .qa .ref{display:inline-block;margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff);border:1px solid color-mix(in srgb,var(--accent) 32%,#fff);border-radius:5px;padding:1px 7px;vertical-align:middle;white-space:nowrap}
+  .no-results{display:none;text-align:center;color:var(--ink-ghost);font-family:var(--mono);padding:70px 0;font-size:14px}
 
-  .no-results{display:none;text-align:center;color:var(--text-faint);font-family:var(--mono);padding:60px 0;font-size:14px}
-
-  /* ---------- Footer / legend ---------- */
-  footer{border-top:1px solid var(--line);margin-top:34px;padding:30px 0 60px}
-  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px 34px}
-  .legend h5{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px}
-  .legend .row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-dim);margin-bottom:8px;font-family:var(--mono)}
-  .legend .swatch{width:11px;height:11px;border-radius:3px;flex:none}
-  .legend p{font-size:13px;color:var(--text-faint);line-height:1.6;margin:0}
-  .foot-note{margin-top:26px;font-size:12px;color:var(--text-faint);line-height:1.6;border-top:1px solid var(--line);padding-top:18px}
-
-  @media (max-width:720px){
-    .detail-inner{grid-template-columns:1fr;gap:22px}
-    .phase-desc{display:none}
-    .grid{grid-template-columns:1fr}
-    .effort .bar{width:70px}
-  }
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
-  }
-  :focus-visible{outline:2px solid var(--brand-soft);outline-offset:2px;border-radius:6px}
-
-  /* ---------- view switcher ---------- */
-  .viewswitch{position:sticky;top:0;z-index:50;background:rgba(15,20,27,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 0}
-  .viewseg button{padding:9px 16px}
   .view{display:none}
   .view.active{display:block}
+  .changes-wrap{max-width:900px;margin:0 auto;padding:34px 24px 10px}
+  .changes-note{color:var(--ink-dim);font-size:14.5px;line-height:1.65;margin:0 0 30px;text-wrap:pretty}
+  .rev{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:18px;background:#fff}
+  .rev-head{padding:16px 20px;border-bottom:1px solid rgba(25,25,25,0.08);background:var(--bg-soft);display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+  .rev-tag{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,#fff);border:1px solid color-mix(in srgb,var(--brand) 32%,#fff);border-radius:6px;padding:3px 9px;font-weight:600}
+  .rev-date{font-family:var(--display);font-weight:700;font-size:17px}
+  .rev-label{color:var(--ink-dim);font-size:14px}
+  .rev-sum{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-ghost)}
+  .rev-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px}
+  .rev-body h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 2px}
+  .rev-body h4+h4,.rev-body ul+h4{margin-top:14px}
+  .crow{display:flex;gap:12px;align-items:flex-start;border:1px solid rgba(25,25,25,0.09);border-left:3px solid var(--cc);border-radius:10px;padding:12px 14px}
+  .crow .chg{margin-top:2px}
+  .crow h5{font-family:var(--display);font-weight:600;font-size:15px;margin:0 0 4px}
+  .crow p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-dim);text-wrap:pretty}
+  .rev-doc{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+  .rev-doc li{font-size:13.5px;line-height:1.6;color:var(--ink-dim);text-wrap:pretty}
+  .rev-against{margin:14px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--ink-ghost);line-height:1.6}
 
-  /* ---------- gantt timeline ---------- */
-  :root{--labw:210px}
-  .gantt-head{padding:36px 0 20px}
-  .gantt-note{max-width:770px;color:var(--text-dim);font-size:14.5px;line-height:1.65;margin:0 0 18px}
-  .g-legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--mono);font-size:12px;color:var(--text-dim)}
-  .g-legend span{display:inline-flex;align-items:center;gap:7px}
-  .g-legend i{width:14px;height:11px;border-radius:3px;display:inline-block}
-  .g-legend i.tbd{background:repeating-linear-gradient(45deg,var(--text-faint),var(--text-faint) 2px,transparent 2px,transparent 5px);border:1px solid var(--line-strong)}
-  .gantt-scroll{overflow-x:auto;padding-bottom:10px}
-  .gantt{min-width:840px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);margin-bottom:24px}
-  .g-yearrow,.g-monthrow{display:flex}
-  .g-spacer{width:var(--labw);flex:none;border-right:1px solid var(--line);background:var(--panel-2)}
-  .g-year{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--amber);padding:8px 11px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel-2)}
-  .g-year:last-child{border-right:0}
-  .g-month{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);text-align:center;padding:7px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line-strong)}
-  .g-month:last-child{border-right:0}
-  .g-row{display:flex;align-items:stretch;border-bottom:1px solid var(--line);transition:background .12s}
-  .g-row:last-child{border-bottom:0}
-  .g-row:hover{background:var(--panel-2);cursor:pointer}
-  .g-name{width:var(--labw);flex:none;padding:0 12px;display:flex;align-items:center;gap:9px;border-right:1px solid var(--line);font-size:13px;color:var(--text)}
-  .g-name .pdot{width:8px;height:8px;border-radius:50%;flex:none}
-  .g-name .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .g-beyond{font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);border-radius:4px;padding:1px 4px;flex:none;margin-left:auto}
-  .g-track{position:relative;flex:1;min-width:0;height:40px;background-image:repeating-linear-gradient(90deg,transparent,transparent calc(100%/18 - 1px),var(--line) calc(100%/18 - 1px),var(--line) calc(100%/18))}
-  .g-bar{position:absolute;top:9px;height:22px;border-radius:5px;background:var(--pc);box-shadow:0 1px 5px rgba(0,0,0,0.28);min-width:7px}
-  .g-bar.tbd{background:repeating-linear-gradient(45deg,var(--pc),var(--pc) 5px,color-mix(in srgb,var(--pc) 50%,#0F141B) 5px,color-mix(in srgb,var(--pc) 50%,#0F141B) 10px)}
-  .g-bar.clip{border-top-right-radius:0;border-bottom-right-radius:0;-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
-  .g-bar.stub{opacity:.5;border:1px dashed var(--line-strong);background:transparent}
-  @media (max-width:640px){:root{--labw:132px} .g-name{font-size:12px}}
+  footer{border-top:1px solid var(--line);margin-top:38px;padding:28px 0 60px;background:var(--bg-soft)}
+  .foot-note{font-size:12px;color:var(--ink-faint);line-height:1.65;margin:0;text-wrap:pretty}
+
+  .lock{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 24px;background:linear-gradient(180deg,#F6F8FB,#FFFFFF)}
+  .lock-box{width:100%;max-width:420px}
+  .lock-box img{height:26px;width:auto;display:block;margin-bottom:28px}
+  .lock-box h1{font-size:34px;line-height:1.06;margin:0 0 12px}
+  .lock-box p.intro{color:var(--ink-dim);font-size:14.5px;line-height:1.6;margin:0 0 26px;text-wrap:pretty}
+  .lock-box form{display:flex;flex-direction:column;gap:12px}
+  .lock-box input{width:100%;font-family:var(--body);font-size:15px;padding:13px 15px;border-radius:10px;background:#fff;color:var(--ink);outline:none;border:1px solid rgba(25,25,25,0.16)}
+  .lock-box input.err{border-color:var(--red)}
+  .lock-box button{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:#fff;background:var(--brand);border:0;border-radius:10px;padding:14px 18px;cursor:pointer}
+  .lock-box button:hover{background:var(--brand-dark)}
+  .lock-err{margin:0;font-family:var(--mono);font-size:12px;color:var(--red);letter-spacing:.03em}
+  .lock-note{margin:22px 0 0;font-family:var(--mono);font-size:11px;color:var(--ink-ghost);line-height:1.6;letter-spacing:.02em}
+  .role-pill{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,#fff);border:1px solid color-mix(in srgb,var(--brand) 30%,#fff);border-radius:6px;padding:5px 9px;font-weight:600}
+  .signout{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-ghost);background:none;border:0;cursor:pointer;padding:5px 2px}
+  .signout:hover{color:var(--red)}
+  .role-group{margin-left:auto;display:inline-flex;align-items:center;gap:10px}
+
+  .tl-wrap{max-width:1180px;margin:0 auto;padding:34px 24px 10px}
+  .tl-note{max-width:780px;color:var(--ink-dim);font-size:14.5px;line-height:1.65;margin:0 0 16px;text-wrap:pretty}
+  .tl-caveat{max-width:780px;color:var(--amber-ink);background:var(--amber-bg);border:1px dashed rgba(245,184,65,0.8);border-radius:9px;padding:11px 14px;font-size:13.5px;line-height:1.6;margin:0 0 26px;text-wrap:pretty}
+  .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:start}
+  .tl-col{border:1px solid var(--line);border-radius:14px;background:var(--bg-soft);overflow:hidden}
+  .tl-head{padding:12px 14px;border-bottom:1px solid rgba(25,25,25,0.08);background:#fff}
+  .tl-head b{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-0.01em;display:block}
+  .tl-head span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost);margin-top:3px;display:block}
+  .tl-items{padding:10px;display:flex;flex-direction:column;gap:7px}
+  .tl-item{display:flex;align-items:flex-start;gap:9px;border:1px solid rgba(25,25,25,0.09);border-left:3px solid var(--pc);border-radius:9px;padding:9px 10px;background:#fff}
+  .tl-item.cont{background:#F7F9FB}
+  .tl-item.cont .tl-name{color:var(--ink-faint)}
+  .tl-name{flex:1;font-size:13px;line-height:1.4;text-wrap:pretty}
+  .tl-size{font-family:var(--mono);font-size:10.5px;color:var(--ink-ghost);flex:none;margin-top:1px}
+  .tl-empty{font-family:var(--mono);font-size:11px;color:#C3CAD4;padding:8px 2px}
+  .tl-legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+  .tl-legend span{display:inline-flex;align-items:center;gap:7px}
+  .tl-legend i{width:14px;height:10px;border-radius:3px;display:inline-block}
+
+  @media (max-width:720px){.phase-desc{display:none}.grid{grid-template-columns:1fr}.detail-inner{grid-template-columns:1fr;gap:22px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  @media print{
+    @page{margin:13mm;size:letter}
+    .viewbar,.controls,.no-results{display:none!important}
+    .card{break-inside:avoid;page-break-inside:avoid;box-shadow:none}
+    .view{display:block!important}
+    body{background:#fff}
+  }
 </style>
 </head>
 <body>
 
+<div class="lock" id="lockScreen">
+  <div class="lock-box">
+    <img src="https://cdn.prod.website-files.com/6241bfd66a56ec4adc45e77e/64f0acb1db8f59708c947c24_rocketrez_logo_full-colour.svg" alt="RocketRez">
+    <p class="eyebrow">Orion Platform</p>
+    <h1>Product Roadmap<span>.</span></h1>
+    <p class="intro">Confidential &mdash; for review. Enter the access phrase you were given to continue.</p>
+    <form id="lockForm">
+      <input type="password" id="pw" placeholder="Access phrase" aria-label="Access phrase" autocomplete="off">
+      <p class="lock-err" id="pwErr" hidden>That phrase wasn&rsquo;t recognised. Check with your RocketRez contact.</p>
+      <button type="submit">Continue</button>
+    </form>
+    <p class="lock-note">Access is scoped to the phrase used &mdash; internal stakeholders see the delivery timeline in addition to the board.</p>
+  </div>
+</div>
+
+<div id="app" hidden>
+
 <header>
   <div class="wrap">
-    <a href="https://www.rocketrez.com" class="rr-logo" aria-label="RocketRez" target="_blank" rel="noopener"><svg class="rr-logo-svg" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1366 431.8" style="enable-background:new 0 0 1366 431.8;" xml:space="preserve"> <style type="text/css"> .st0{fill:#FFFFFF;} </style> <path class="st0" d="M154.1,298.3l-55.9,36.2l35.2-55.1C149.9,254.7,177.3,282.4,154.1,298.3 M346.2,170.7 c-2.3,3.7-4.8,7.3-7.4,10.7V314c0,13.5-11,24.5-24.5,24.5h-61.4H231c-11.6-0.6-22.1-5.2-30.2-12.4c-2.1-1.8-4-3.9-5.7-6 c-5.7-7.1-9.4-15.9-10.4-25.4c0-0.1,0-0.3,0-0.4c-0.1-0.8-0.1-1.6-0.2-2.4c-0.5-5.3-1.9-10.3-4-15c-5-11-13.9-19.9-24.9-24.8 c-4.6-2-9.5-3.4-14.7-3.9l-3.2-0.3c-10.3-1.1-19.3-5.2-26.7-11.7c-2-1.8-3.9-3.7-5.6-5.8c-6.5-7.9-10.6-17.8-11.1-28.7v-21.9v-61.4 c0-13.5,11-24.5,24.5-24.5h132.6c3.5-2.7,7.2-5.2,11-7.6c12.9-7.9,27.8-13.8,42.4-16.9h-186c-27,0-48.9,22-48.9,48.9v178.5V314 c0,27,22,48.9,48.9,48.9H136h178.5c27,0,48.9-22,48.9-48.9V128.1C360.1,142.9,354.2,157.7,346.2,170.7"/> <path class="st0" d="M266.8,182.2c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4c-4.5-4.5-4.5-11.9,0-16.4c2.3-2.3,5.2-3.4,8.2-3.4 s5.9,1.1,8.2,3.4C271.3,170.3,271.3,177.7,266.8,182.2 M275.1,141.1c2.3-2.3,5.2-3.4,8.2-3.4s5.9,1.1,8.2,3.4 c4.5,4.5,4.5,11.9,0,16.4c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4C270.6,152.9,270.6,145.6,275.1,141.1 M242,206.9 c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4c-4.5-4.5-4.5-11.9,0-16.4c2.3-2.3,5.2-3.4,8.2-3.4s5.9,1.1,8.2,3.4 C246.6,195.1,246.6,202.4,242,206.9 M247.9,112.8c-9.3,9.3-42.2,51.8-52.2,64.6L155,180l-30.4,44l39.3,1.1 c-2.6,4.7-5.1,9.1-7.5,13.9c3.1,0.7,6.2,1.7,9.1,3c11.1,4.9,20,13.8,24.9,24.8c1.3,3,2.4,6.1,3.1,9.4c4.9-2.4,9.3-4.8,14-7.4 l0.1,38.2l45.1-29.4l2.5-40.7c12.8-10,55.3-42.9,64.6-52.2c6.5-6.5,11.8-13.5,16.3-20.7c20.9-33.9,21-72.3,12.9-80.4 c-3.1-3.1-10.6-5-20.6-5c-16.1,0-38.7,4.9-59.5,17.8C261.5,100.8,254.4,106.3,247.9,112.8"/> <path class="st0" d="M1290.2,263.9v-21H1254l34.8-51.4v-9.6h-76.7v21h32.6l-34.5,50.9v10.1H1290.2z M1145.7,206.2 c1.2-2,3-3.6,5.3-4.7c2.3-1.1,5.1-1.7,8.5-1.7c2.2,0,4.1,0.3,5.8,0.9c1.7,0.6,3.2,1.5,4.4,2.7c1.2,1.2,2.1,2.6,2.7,4.3 s0.9,3.7,0.9,5.8h-30.1C1143.7,210.6,1144.5,208.2,1145.7,206.2 M1179.5,263.6c5.5-1.5,10.2-3.5,13.9-6.3c3.7-2.7,6.5-6.1,8.4-10 s2.8-8.3,2.8-13.2h-30c0,1.7-0.3,3.2-0.8,4.7s-1.4,2.7-2.6,3.8s-2.7,1.9-4.7,2.6c-1.9,0.6-4.3,0.9-7.1,0.9c-3.9,0-7.1-0.7-9.6-2.1 c-2.4-1.4-4.2-3.4-5.3-6.1c-1.1-2.7-1.6-5.9-1.6-9.6h61.5V223c0-9.8-1.8-17.9-5.4-24.2s-8.9-11-15.8-14.1s-15.3-4.6-25.1-4.6 c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.2c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.8,1.9,17.9,5.8,24.2s9.4,11,16.6,14.1 s15.7,4.6,25.6,4.6C1167.5,265.7,1174,265,1179.5,263.6 M1037.8,181.4h24.1c1.9,0,3.5,0.5,5,1.5s2.6,2.3,3.4,4s1.2,3.6,1.2,5.7 c0,3.5-0.9,6.3-2.8,8.5c-1.9,2.1-4.1,3.2-6.8,3.2h-24.1L1037.8,181.4L1037.8,181.4z M1037.8,263.9V228h16.9l16.3,35.9h38.5l-21-41.6 c5.5-3.2,9.8-7.5,13-12.8s4.8-11.4,4.8-18.3c0-6-1.3-11.6-4-16.8s-6.7-9.4-12-12.6c-5.3-3.2-12-4.8-20-4.8h-66.9v106.9L1037.8,263.9 L1037.8,263.9z M976.7,265.4c2.4-0.2,4.9-0.5,7.3-1c2.4-0.5,4.5-1,6.1-1.5v-18.2h-8.7c-3.5,0-5.9-0.9-7-2.7s-1.7-4.5-1.7-8v-31.2 h17.4v-21h-17.4V157h-23l-6.7,24.9h-12.7v21h11.5v41c0,5.6,1.2,10,3.6,13.2c2.4,3.2,5.7,5.5,10,6.8s9.2,1.9,14.8,1.9 C972.1,265.7,974.2,265.6,976.7,265.4 M864.8,206.2c1.2-2,3-3.6,5.3-4.7c2.3-1.1,5.1-1.7,8.5-1.7c2.2,0,4.1,0.3,5.8,0.9 c1.7,0.6,3.2,1.5,4.4,2.7s2.1,2.6,2.7,4.3c0.6,1.7,0.9,3.7,0.9,5.8h-30.1C862.7,210.6,863.5,208.2,864.8,206.2 M898.5,263.6 c5.5-1.5,10.2-3.5,13.9-6.3c3.7-2.7,6.5-6.1,8.4-10s2.8-8.3,2.8-13.2h-30c0,1.7-0.3,3.2-0.8,4.7s-1.4,2.7-2.6,3.8 c-1.2,1.1-2.7,1.9-4.7,2.6c-1.9,0.6-4.3,0.9-7.1,0.9c-3.9,0-7.1-0.7-9.6-2.1c-2.4-1.4-4.2-3.4-5.3-6.1c-1.1-2.7-1.6-5.9-1.6-9.6 h61.5V223c0-9.8-1.8-17.9-5.4-24.2c-3.6-6.3-8.9-11-15.8-14.1c-6.9-3.1-15.3-4.6-25.1-4.6c-9.3,0-17.4,1.6-24.3,4.7 c-6.9,3.2-12.2,7.9-16.1,14.2c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.8,1.9,17.9,5.8,24.2c3.9,6.3,9.4,11,16.6,14.1 c7.2,3.1,15.7,4.6,25.6,4.6C886.5,265.7,893,265,898.5,263.6 M770,263.9v-17.7l10.7-10.4l17.2,28.1H833l-31-49l30.3-33.1h-36 L770,213.2v-62.1h-30.9v112.8L770,263.9L770,263.9z M699.5,263.7c5.5-1.3,10.3-3.4,14.4-6.2c4.1-2.8,7.4-6.4,9.7-11 c2.3-4.5,3.5-9.9,3.5-16.1h-28.7c0,3.3-0.6,6-1.9,8.2c-1.2,2.1-3,3.7-5.4,4.7c-2.3,1-5.2,1.5-8.6,1.5c-3.7,0-6.8-0.7-9.1-2.1 c-2.3-1.4-4-3.4-5.1-6s-1.6-5.7-1.6-9.3v-8.9c0-3.6,0.5-6.8,1.6-9.4c1-2.6,2.7-4.7,4.9-6.1c2.2-1.4,5.1-2.1,8.8-2.1 c3.2,0,6,0.5,8.2,1.5c2.3,1,4,2.5,5.2,4.6s1.8,4.7,1.8,7.9h30c0-6.2-1.2-11.5-3.5-16s-5.6-8.1-9.7-10.9c-4.1-2.8-9-4.9-14.4-6.2 c-5.5-1.3-11.3-2-17.6-2c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.3s-5.7,14.4-5.7,24c0,9.5,1.9,17.5,5.7,23.8 c3.8,6.4,9.2,11.1,16.1,14.3c6.9,3.2,15,4.7,24.3,4.7C688.2,265.7,694.1,265.1,699.5,263.7 M573.7,242.7c-2.2-1.4-3.9-3.4-4.9-6 s-1.6-5.7-1.6-9.3v-8.9c0-3.6,0.5-6.8,1.6-9.4c1-2.6,2.7-4.7,4.9-6.1c2.2-1.4,5.1-2.1,8.8-2.1c3.6,0,6.6,0.7,8.9,2.1 c2.3,1.4,3.9,3.4,5,6.1c1,2.6,1.6,5.8,1.6,9.4v8.9c0,3.6-0.5,6.7-1.6,9.3c-1,2.6-2.7,4.6-5,6s-5.2,2.1-8.9,2.1 C578.9,244.8,575.9,244.1,573.7,242.7 M606.9,261c6.9-3.2,12.3-7.9,16.2-14.3c3.8-6.4,5.7-14.3,5.7-23.8c0-9.6-1.9-17.6-5.7-23.9 c-3.8-6.3-9.2-11.1-16.2-14.2c-6.9-3.2-15.1-4.7-24.4-4.7c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.2 c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.5,1.9,17.5,5.7,23.8c3.8,6.4,9.2,11.1,16.1,14.3c6.9,3.2,15,4.7,24.3,4.7S599.9,264.1,606.9,261 M464,181.4h24c1.9,0,3.5,0.5,5,1.5c1.4,1,2.6,2.3,3.4,4s1.2,3.6,1.2,5.7c0,3.5-0.9,6.3-2.8,8.5c-1.9,2.1-4.1,3.2-6.8,3.2h-24V181.4 z M464,263.9V228h16.9l16.3,35.9h38.5l-21-41.6c5.5-3.2,9.8-7.5,13-12.8s4.8-11.4,4.8-18.3c0-6-1.3-11.6-4-16.8s-6.7-9.4-12-12.6 c-5.3-3.2-12-4.8-20-4.8h-66.9v106.9L464,263.9L464,263.9z"/> </svg></a>
+    <a class="rr-logo" href="https://www.rocketrez.com" target="_blank" rel="noopener" aria-label="RocketRez"><img src="https://cdn.prod.website-files.com/6241bfd66a56ec4adc45e77e/64f0acb1db8f59708c947c24_rocketrez_logo_full-colour.svg" alt="RocketRez"></a>
     <p class="eyebrow">Orion Platform</p>
-    <h1>Product Roadmap<span class="platform">.</span></h1>
+    <h1>Product Roadmap<span>.</span></h1>
     <p class="sub">Where the platform is headed &mdash; grouped by delivery phase, ordered by priority, sized by effort. Select any feature to see its current state and the desired-state detail behind it.</p>
     <div class="phase-defs">
-      <div class="pdef" style="--accent:var(--now)">
-        <span class="pdef-tag">Now</span>
-        <p>Complete the already-delivered features and deliver high-priority winter-sale functionality.</p>
-        <span class="pdef-target">Target &mdash; delivered in FY26</span>
-      </div>
-      <div class="pdef" style="--accent:var(--next)">
-        <span class="pdef-tag">Next</span>
-        <p>Enable full self-service in-app.</p>
-        <span class="pdef-target">Target &mdash; delivered by April 30</span>
-      </div>
-      <div class="pdef" style="--accent:var(--later)">
-        <span class="pdef-tag">Later</span>
-        <p>Long-term bets under evaluation &mdash; delivery post-&rsquo;27 season start.</p>
-      </div>
+      <div class="pdef" style="--accent:var(--now)"><span class="pdef-tag">Now</span><p>Complete the already-delivered features and deliver high-priority winter-sale functionality.</p><span class="pdef-target">Target &mdash; delivered in FY26</span></div>
+      <div class="pdef" style="--accent:var(--next)"><span class="pdef-tag">Next</span><p>Enable full self-service in-app.</p><span class="pdef-target">Target &mdash; delivered by April 30</span></div>
+      <div class="pdef" style="--accent:var(--later)"><span class="pdef-tag">Later</span><p>Long-term bets under evaluation &mdash; delivery post-&rsquo;27 season start.</p></div>
     </div>
     <div class="meta">
-      <span><b>As of</b> 24 Jul 2026</span>
+      <span><b>As of</b> <span id="asOf">&mdash;</span></span>
       <span><b>Source</b> Orion Priorities &amp; Estimates &middot; Outstanding Items</span>
       <span class="confidential">Confidential &mdash; for review</span>
     </div>
   </div>
 </header>
 
-<div id="boardView" class="view active">
-
-<div class="controls">
-  <div class="wrap controls-inner">
-    <div class="seg" role="group" aria-label="Filter by phase">
-      <button data-filter="all" aria-pressed="true">All</button>
-      <button data-filter="inflight" aria-pressed="false"><span class="dot" style="background:var(--inflight)"></span>In&nbsp;Flight</button>
-      <button data-filter="now" aria-pressed="false"><span class="dot" style="background:var(--now)"></span>Now</button>
-      <button data-filter="next" aria-pressed="false"><span class="dot" style="background:var(--next)"></span>Next</button>
-      <button data-filter="later" aria-pressed="false"><span class="dot" style="background:var(--later)"></span>Later</button>
+<div class="viewbar">
+  <div class="wrap">
+    <div class="seg viewseg" role="group" aria-label="View">
+      <button data-view="board" aria-pressed="true">Board</button>
+      <button data-view="timeline" aria-pressed="false" data-role="internal" hidden>Timeline</button>
+      <button data-view="changes" aria-pressed="false">What&rsquo;s changed</button>
     </div>
-    <div class="search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="search" placeholder="Search features&hellip;" aria-label="Search features">
-    </div>
-    <button class="link-btn" id="toggleAll">Expand all</button>
+    <span class="role-group"><span class="role-pill" id="rolePill"></span><button class="signout" id="signOut">Sign out</button></span>
+    <button class="btn" id="printBtn">Print / PDF</button>
   </div>
 </div>
 
-<main class="wrap">
-  <div id="board"></div>
-  <div class="no-results" id="noResults">No features match your filters.</div>
-</main>
-</div><!-- /boardView -->
-
-<div id="timelineView" class="view">
-  <div class="wrap">
-    <div class="gantt-head">
-      <p class="eyebrow" style="margin-bottom:10px">Aug 2026 &ndash; Jan 2028</p>
-      <h2 class="phase-title" style="font-size:clamp(24px,4vw,32px);margin:0 0 10px">Delivery over the next 18 months</h2>
-      <p class="gantt-note">Sequenced by priority, starting with in-flight work, assuming two teams can run up to two projects at once. Bar length reflects rough effort; dashed bars are unsized (TBD). Rows are ordered by start &mdash; where two bars overlap in time, that&rsquo;s the two-team capacity in use. Anything scheduled past month 18 is marked at the right edge. Select any row to open its detail on the board.</p>
-      <div class="g-legend">
-        <span><i style="background:var(--inflight)"></i>In Flight</span>
-        <span><i style="background:var(--now)"></i>Now</span>
-        <span><i style="background:var(--next)"></i>Next</span>
-        <span><i style="background:var(--later)"></i>Later</span>
-        <span><i class="tbd"></i>TBD sizing</span>
+<div id="boardView" class="view active">
+  <div class="controls">
+    <div class="wrap">
+      <div class="seg" id="phaseSeg" role="group" aria-label="Filter by phase">
+        <button data-filter="all" aria-pressed="true">All</button>
+        <button data-filter="inflight" aria-pressed="false"><span class="dot" style="background:var(--inflight)"></span>In&nbsp;Flight</button>
+        <button data-filter="now" aria-pressed="false"><span class="dot" style="background:var(--now)"></span>Now</button>
+        <button data-filter="next" aria-pressed="false"><span class="dot" style="background:var(--next)"></span>Next</button>
+        <button data-filter="later" aria-pressed="false"><span class="dot" style="background:var(--later)"></span>Later</button>
       </div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="search" placeholder="Search features&hellip;" aria-label="Search features">
+      </div>
+      <button class="btn" id="changedOnly" aria-pressed="false">Changed only</button>
+      <button class="link-btn" id="toggleAll">Expand all</button>
     </div>
-    <div class="gantt-scroll">
-      <div class="gantt" id="gantt"></div>
+  </div>
+  <main class="wrap">
+    <div id="board"></div>
+    <div class="no-results" id="noResults">No features match your filters.</div>
+  </main>
+</div>
+
+<div id="timelineView" class="view" data-role="internal">
+  <div class="tl-wrap">
+    <p class="eyebrow">Q3 2026 &mdash; 2028</p>
+    <h1 style="font-size:clamp(24px,4vw,34px);letter-spacing:-0.02em;margin:0 0 12px">Where the work lands, by quarter</h1>
+    <p class="tl-note">Indicative bucketing, sequenced by priority and rough effort, assuming two teams can run up to two projects at once. A feature appears in the quarter it starts and in every quarter it is still running &mdash; continuing work is marked <b style="color:#7A8496;font-weight:500">cont.</b> Quarters show intent, not committed dates; anything unsized (TBD) is placed on an assumed mid-size estimate.</p>
+    <p class="tl-caveat">Capacity caveat: at two concurrent projects, this model pushes several Now features past the FY26 target stated above. The phase targets express intent; this view shows what the current sizing and sequencing actually support.</p>
+    <div class="tl-grid" id="tlGrid"></div>
+    <div class="tl-legend">
+      <span><i style="background:var(--inflight)"></i>In Flight</span>
+      <span><i style="background:var(--now)"></i>Now</span>
+      <span><i style="background:var(--next)"></i>Next</span>
+      <span><i style="background:var(--later)"></i>Later</span>
     </div>
+  </div>
+</div>
+
+<div id="changesView" class="view">
+  <div class="changes-wrap">
+    <p class="eyebrow">Revision history</p>
+    <h1 style="font-size:clamp(24px,4vw,34px);letter-spacing:-0.02em;margin:0 0 12px">What&rsquo;s changed</h1>
+    <p class="changes-note">Each published update is diffed against the previous version in source control and recorded here &mdash; so the log is a snapshot taken at publish time, not a live feed. Features touched by the most recent update carry a matching badge on the board.</p>
+    <div id="revList"></div>
   </div>
 </div>
 
@@ -289,6 +291,8 @@
     <p class="foot-note">Effort sizing is rough (t-shirt) and not a commitment; phases reflect current planning as of the date shown. Current context blends the platform&rsquo;s present state (Orion Priorities &amp; Estimates) with gaps reported in RocketRez Outstanding Items. Desired-state detail is from the Priorities &amp; Estimates sheet. Open questions and responses come from Outstanding Items &mdash; question text as posed, with recorded responses shown in <b style="color:#C0392B">red</b>; items marked &lsquo;Open&rsquo; have no recorded response yet. The &lsquo;&rarr;&rsquo; reference on each question points to the numbered desired-state item it relates to.</p>
   </div>
 </footer>
+
+</div><!-- /#app -->
 
 <script>
 const PHASES = [
@@ -493,217 +497,316 @@ const DATA = [
    verifyNote:"No desired-state detail was captured in the source export for this feature — populate from the sheet."}
 ];
 
-// ---------- render ----------
+const CHANGE_KINDS = {
+  added:    {label:"New",       color:"#0051F9"},
+  removed:  {label:"Removed",   color:"#C0392B"},
+  moved:    {label:"Moved",     color:"#6D28D9"},
+  reranked: {label:"Re-ranked", color:"#1D5FD6"},
+  resized:  {label:"Re-sized",  color:"#0A8F82"},
+  edited:   {label:"Updated",   color:"#7A8496"}
+};
+
+// Diffs are computed at each publish against the previously published version. Newest first.
+const REVISIONS = [
+  {
+    date: "27 Jul 2026",
+    label: "Reporting &rarr; API, light brand refresh",
+    against: "Compared against the previous copy published to product-sandbox/index.html.",
+    features: [
+      {name:"API", kind:"added", detail:"New Now item at priority 06, taking the slot Reporting held. Covers exposing Orion&rsquo;s internal APIs externally &mdash; security, tokenization, rate limiting. Sized TBD."},
+      {name:"Reporting", kind:"removed", detail:"Removed from Now. Native in-platform reporting and staff / refund audit trails are no longer represented anywhere on the roadmap &mdash; flagged for confirmation, since reporting is a mandate area."}
+    ],
+    document: [
+      "Rebuilt in the rocketrez.com light palette &mdash; white surfaces, #0051F9 accents, #191919 ink; Archivo replaces Space Grotesk.",
+      "Phase hues re-cut for contrast; Later moved from pink to coral.",
+      "Morey&rsquo;s-priority (MP) flags and filter removed &mdash; not shown to third-party reviewers.",
+      "18-month Gantt timeline retired from this view.",
+      "Print / PDF output added: expands every card, drops the controls, keeps cards off page breaks."
+    ]
+  }
+];
+
+const ACCENT = {inflight:"var(--inflight)", now:"var(--now)", next:"var(--next)", later:"var(--later)"};
+const changeMap = {};
+(REVISIONS[0] ? REVISIONS[0].features : []).forEach(c => { changeMap[c.name] = c; });
+
+document.getElementById('asOf').textContent = REVISIONS[0] ? REVISIONS[0].date : '\u2014';
+
 const board = document.getElementById('board');
-const romanize = n => String(n).padStart(2,'0');
+const pad2 = n => String(n).padStart(2,'0');
 
 function cardHTML(f, idx){
   const eff = EFFORT[f.size] || EFFORT.NA;
-  const flags = [];
-  if(f.verify) flags.push('<span class="verify-flag">verify</span>');
-  const gate = (f.phase==='inflight') ? '—' : romanize(f.pri);
+  const gate = (f.phase === 'inflight') ? '&mdash;' : pad2(f.pri);
+  const chg = changeMap[f.name];
+  const chgTag = chg
+    ? '<span class="chg" style="--cc:' + CHANGE_KINDS[chg.kind].color + '" title="' + CHANGE_KINDS[chg.kind].label + ' in the latest update">' + CHANGE_KINDS[chg.kind].label + '</span>'
+    : '';
+  const verifyTag = f.verify ? '<span class="verify-flag">verify</span>' : '';
 
-  let desiredBlock;
-  if(f.desired && f.desired.length){
-    desiredBlock = '<ol class="desired-list">'+f.desired.map(d=>`<li>${d}</li>`).join('')+'</ol>';
-  } else {
-    desiredBlock = '<p class="col-current"><span class="empty">No desired-state detail captured in source.</span></p>';
-  }
+  const desiredBlock = (f.desired && f.desired.length)
+    ? '<ol class="desired-list">' + f.desired.map(d => '<li>' + d + '</li>').join('') + '</ol>'
+    : '<p class="empty">No desired-state detail captured in source.</p>';
 
   const qaBlock = (f.qa && f.qa.length)
-    ? `<div class="qa-block"><h4>Open questions &amp; responses</h4>${f.qa.map(x=>`<div class="qa"><p class="q">${x.q}${(x.ref&&x.ref.length)?`<span class="ref" title="Relates to desired-state item(s)">&rarr; ${x.ref.map(r=>String(r).padStart(2,'0')).join(', ')}</span>`:''}</p><p class="a${x.red?' red':''}">${x.a}</p></div>`).join('')}</div>`
+    ? '<div class="qa-block"><h4>Open questions &amp; responses</h4>' + f.qa.map(x =>
+        '<div class="qa"><p class="q">' + x.q +
+        ((x.ref && x.ref.length) ? '<span class="ref" title="Relates to desired-state item(s)">&rarr; ' + x.ref.map(pad2).join(', ') + '</span>' : '') +
+        '</p><p class="a' + (x.red ? ' red' : '') + '">' + x.a + '</p></div>').join('') + '</div>'
     : '';
-  const ctxList = (f.notes && f.notes.length)
-    ? `<ul class="ctx-list">${f.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`
-    : '';
-  const hasCurrent = f.current && f.current!=='—';
-  const currentBlock = (hasCurrent || ctxList)
-    ? `${hasCurrent ? `<div class="now-line">${f.current}</div>` : ''}${ctxList}`
-    : '<p class="empty">Not captured in source.</p>';
-  const verifyBlock = f.verifyNote ? `<div class="verify-note">⚠ ${f.verifyNote}</div>` : '';
 
-  return `
-  <div class="card" data-phase="${f.phase}" data-mp="${f.mp}" data-name="${f.name.toLowerCase()}" style="--accent:var(--${f.phase});--accent-ink:${f.phase==='now'?'#1d5fd6':f.phase==='next'?'#6d28d9':f.phase==='inflight'?'#0a8f82':'#be185d'}">
-    <button class="card-btn" aria-expanded="false" data-idx="${idx}">
-      <div class="card-top">
-        <span class="gate">${gate}</span>
-        ${flags.join('')}
-        <span class="effort"><span class="lab">${eff.lab}</span><span class="bar"><i style="width:${eff.w}%"></i></span></span>
-      </div>
-      <h3>${f.name}</h3>
-      <p class="subtext">${f.subtext}</p>
-      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-    </button>
-    <div class="detail">
-      <div class="detail-inner">
-        <div class="col-current">
-          <h4>Current context</h4>
-          ${currentBlock}
-        </div>
-        <div class="col-desired">
-          <h4>Desired state — expanded functionality</h4>
-          ${desiredBlock}
-        </div>
-        ${qaBlock}
-        ${verifyBlock}
-      </div>
-    </div>
-  </div>`;
+  const ctxList = (f.notes && f.notes.length)
+    ? '<ul class="ctx-list">' + f.notes.map(n => '<li>' + n + '</li>').join('') + '</ul>'
+    : '';
+
+  const verifyBlock = f.verifyNote ? '<div class="verify-note">&#9888; ' + f.verifyNote + '</div>' : '';
+
+  return '<div class="card" data-phase="' + f.phase + '" data-changed="' + (chg ? '1' : '0') +
+    '" data-name="' + f.name.toLowerCase() + '" style="--accent:' + ACCENT[f.phase] + '">' +
+    '<button class="card-btn" aria-expanded="false" data-idx="' + idx + '">' +
+      '<div class="card-top"><span class="gate">' + gate + '</span>' + chgTag + verifyTag +
+        '<span class="effort"><span class="lab">' + eff.lab + '</span><span class="bar"><i style="width:' + eff.w + '%"></i></span></span>' +
+      '</div>' +
+      '<h3>' + f.name + '</h3><p class="subtext">' + f.subtext + '</p>' +
+      '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+    '</button>' +
+    '<div class="detail"><div class="detail-inner">' +
+      '<div><h4>Current context</h4><div class="now-line">' + f.current + '</div>' + ctxList + '</div>' +
+      '<div><h4>Desired state &mdash; expanded functionality</h4>' + desiredBlock + '</div>' +
+      qaBlock + verifyBlock +
+    '</div></div></div>';
 }
 
 function render(){
-  let idx=0;
-  board.innerHTML = PHASES.map(p=>{
-    const items = DATA.filter(f=>f.phase===p.id).sort((a,b)=>a.pri-b.pri);
-    const cards = items.map(f=>cardHTML(f, DATA.indexOf(f))).join('');
-    return `
-      <section class="phase" data-phase="${p.id}">
-        <div class="phase-head">
-          <span class="phase-tag" style="background:var(--${p.id})">${p.tag}</span>
-          <h2 class="phase-title">${p.title}</h2>
-          <span class="count">${items.length} features</span>
-          <span class="phase-desc">${p.desc}</span>
-        </div>
-        <div class="grid">${cards}</div>
-      </section>`;
+  board.innerHTML = PHASES.map(p => {
+    const items = DATA.filter(f => f.phase === p.id).sort((a,b) => a.pri - b.pri);
+    return '<section class="phase" data-phase="' + p.id + '">' +
+      '<div class="phase-head"><span class="phase-tag" style="background:' + ACCENT[p.id] + '">' + p.tag + '</span>' +
+      '<h2 class="phase-title">' + p.title + '</h2><span class="count">' + items.length + ' features</span>' +
+      '<span class="phase-desc">' + p.desc + '</span></div>' +
+      '<div class="grid">' + items.map(f => cardHTML(f, DATA.indexOf(f))).join('') + '</div></section>';
   }).join('');
-  bindCards();
-}
 
-function bindCards(){
-  document.querySelectorAll('.card-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+  board.querySelectorAll('.card-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
       const card = btn.closest('.card');
       const open = card.classList.toggle('open');
       btn.setAttribute('aria-expanded', open);
     });
   });
 }
-
 render();
 
-// ---------- filtering ----------
-let activePhase='all', query='';
-const noResults=document.getElementById('noResults');
+function renderRevisions(){
+  document.getElementById('revList').innerHTML = REVISIONS.map((r, i) =>
+    '<section class="rev"><div class="rev-head">' +
+      '<span class="rev-tag">' + (i === 0 ? 'Current' : 'Earlier') + '</span>' +
+      '<span class="rev-date">' + r.date + '</span><span class="rev-label">' + r.label + '</span>' +
+      '<span class="rev-sum">' + r.features.length + ' feature change' + (r.features.length === 1 ? '' : 's') +
+      ' &middot; ' + r.document.length + ' document changes</span></div>' +
+    '<div class="rev-body"><h4>Feature changes</h4>' +
+      r.features.map(c => {
+        const k = CHANGE_KINDS[c.kind];
+        return '<div class="crow" style="--cc:' + k.color + '"><span class="chg" style="--cc:' + k.color + '">' + k.label + '</span>' +
+          '<div><h5>' + c.name + '</h5><p>' + c.detail + '</p></div></div>';
+      }).join('') +
+      '<h4>Document changes</h4><ul class="rev-doc">' + r.document.map(d => '<li>' + d + '</li>').join('') + '</ul>' +
+      '<p class="rev-against">' + r.against + '</p>' +
+    '</div></section>').join('');
+}
+renderRevisions();
+
+let activePhase = 'all', query = '', changedOnly = false;
+const noResults = document.getElementById('noResults');
 
 function applyFilters(){
-  let visible=0;
-  document.querySelectorAll('.card').forEach(card=>{
-    const okPhase = activePhase==='all' || card.dataset.phase===activePhase;
-    const okQ = !query || card.dataset.name.includes(query);
-    const show = okPhase && okQ;
+  let visible = 0;
+  document.querySelectorAll('.card').forEach(card => {
+    const show = (activePhase === 'all' || card.dataset.phase === activePhase) &&
+                 (!query || card.dataset.name.includes(query)) &&
+                 (!changedOnly || card.dataset.changed === '1');
     card.style.display = show ? '' : 'none';
     if(show) visible++;
   });
-  document.querySelectorAll('.phase').forEach(sec=>{
-    const anyVisible = sec.querySelectorAll('.card:not([style*="display: none"])').length>0;
-    const phaseOk = activePhase==='all' || sec.dataset.phase===activePhase;
-    sec.style.display = (anyVisible && phaseOk) ? '' : 'none';
+  document.querySelectorAll('.phase').forEach(sec => {
+    const any = [...sec.querySelectorAll('.card')].some(c => c.style.display !== 'none');
+    sec.style.display = any ? '' : 'none';
   });
-  noResults.style.display = visible===0 ? 'block' : 'none';
+  noResults.style.display = visible === 0 ? 'block' : 'none';
 }
 
-document.querySelectorAll('.seg button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+document.querySelectorAll('#phaseSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#phaseSeg button').forEach(x => x.setAttribute('aria-pressed','false'));
     b.setAttribute('aria-pressed','true');
-    activePhase=b.dataset.filter;
+    activePhase = b.dataset.filter;
     applyFilters();
   });
 });
-document.getElementById('search').addEventListener('input', e=>{query=e.target.value.trim().toLowerCase();applyFilters();});
-
-// ---------- expand / collapse all ----------
-const toggleAllBtn=document.getElementById('toggleAll');
-toggleAllBtn.addEventListener('click', ()=>{
-  const anyClosed=[...document.querySelectorAll('.card')].some(c=>c.style.display!=='none' && !c.classList.contains('open'));
-  document.querySelectorAll('.card').forEach(c=>{
-    if(c.style.display==='none') return;
-    c.classList.toggle('open', anyClosed);
-    c.querySelector('.card-btn').setAttribute('aria-expanded', anyClosed);
-  });
-  toggleAllBtn.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+document.getElementById('search').addEventListener('input', e => {
+  query = e.target.value.trim().toLowerCase();
+  applyFilters();
+});
+const changedBtn = document.getElementById('changedOnly');
+changedBtn.addEventListener('click', () => {
+  changedOnly = !changedOnly;
+  changedBtn.setAttribute('aria-pressed', changedOnly);
+  applyFilters();
 });
 
-// ---------------- 18-MONTH TIMELINE ----------------
-const DUR = {XS:0.25, S:0.75, M:1.5, L:2, XL:4, TBD:1.5, NA:1.0};
-const WIN = 18;                       // months in view
-const START = new Date(2026, 7, 1);   // Aug 2026
-
-function schedule(){
-  // greedy assignment by priority across two tracks (two-team capacity)
-  const items = DATA.map((f,i)=>({f, idx:i, pri:f.pri, dur:(DUR[f.size] ?? 1.5), tbd:(f.size==='TBD')}))
-                    .sort((a,b)=> a.pri-b.pri || a.idx-b.idx);
-  const tr = [0,0];
-  items.forEach(it=>{
-    const t = tr[0] <= tr[1] ? 0 : 1;
-    it.track = t; it.start = tr[t]; it.end = tr[t] + it.dur; tr[t] = it.end;
+const toggleAllBtn = document.getElementById('toggleAll');
+function setAll(open){
+  document.querySelectorAll('.card').forEach(c => {
+    if(c.style.display === 'none') return;
+    c.classList.toggle('open', open);
+    c.querySelector('.card-btn').setAttribute('aria-expanded', open);
   });
-  return items.sort((a,b)=> a.start-b.start || a.track-b.track || a.pri-b.pri);
+  toggleAllBtn.textContent = open ? 'Collapse all' : 'Expand all';
 }
+toggleAllBtn.addEventListener('click', () => {
+  const anyClosed = [...document.querySelectorAll('.card')].some(c => c.style.display !== 'none' && !c.classList.contains('open'));
+  setAll(anyClosed);
+});
 
-function buildGantt(){
-  const g = document.getElementById('gantt'); if(!g) return;
-  const items = schedule();
-  const mF = d => d.toLocaleString('en-US',{month:'short'});
-  const months = [];
-  for(let i=0;i<WIN;i++) months.push(new Date(START.getFullYear(), START.getMonth()+i, 1));
-  const years = [];
-  months.forEach(d=>{const y=d.getFullYear();const last=years[years.length-1];
-    if(last && last.y===y) last.n++; else years.push({y, n:1});});
+document.getElementById('printBtn').addEventListener('click', () => {
+  setAll(true);
+  setTimeout(() => window.print(), 120);
+});
 
-  let head = `<div class="g-yearrow"><div class="g-spacer"></div>` +
-    years.map(v=>`<div class="g-year" style="flex:${v.n} 1 0">${v.y}</div>`).join('') + `</div>`;
-  head += `<div class="g-monthrow"><div class="g-spacer"></div>` +
-    months.map(d=>`<div class="g-month" style="flex:1 1 0">${mF(d)}</div>`).join('') + `</div>`;
-
-  const rows = items.map(it=>{
-    const f = it.f, pc = `var(--${f.phase})`;
-    let bar;
-    if(it.start >= WIN){
-      bar = `<div class="g-bar stub" style="left:95%;width:4%;--pc:${pc}"></div>`;
-    } else {
-      const left = (it.start/WIN)*100;
-      let w = (it.dur/WIN)*100, clip = '';
-      if(it.end > WIN){ w = ((WIN-it.start)/WIN)*100; clip = ' clip'; }
-      bar = `<div class="g-bar${it.tbd?' tbd':''}${clip}" style="left:${left}%;width:${w}%;--pc:${pc}" title="${f.name}"></div>`;
-    }
-    const beyond = it.start >= WIN ? `<span class="g-beyond">&gt;18mo</span>` : '';
-    return `<div class="g-row" data-idx="${it.idx}" tabindex="0" role="button" aria-label="${f.name} — open detail">
-      <div class="g-name"><span class="pdot" style="background:${pc}"></span><span class="txt">${f.name}</span>${beyond}</div>
-      <div class="g-track">${bar}</div>
-    </div>`;
-  }).join('');
-
-  g.innerHTML = head + rows;
-  g.querySelectorAll('.g-row').forEach(r=>{
-    const open = ()=> openFromTimeline(+r.dataset.idx);
-    r.addEventListener('click', open);
-    r.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); }});
-  });
-}
-
-function openFromTimeline(idx){
-  setView('board');
-  const btn = [...document.querySelectorAll('.card-btn')].find(b=>+b.dataset.idx===idx);
-  if(btn){
-    const c = btn.closest('.card');
-    if(!c.classList.contains('open')) btn.click();
-    requestAnimationFrame(()=> c.scrollIntoView({behavior:'smooth', block:'center'}));
-  }
-}
-
-// ---------------- VIEW SWITCH ----------------
 function setView(v){
-  document.querySelectorAll('.view').forEach(el=>
-    el.classList.toggle('active', el.id === (v==='board'?'boardView':'timelineView')));
-  document.querySelectorAll('.viewseg button').forEach(b=>
-    b.setAttribute('aria-pressed', b.dataset.view===v));
+  const el = document.querySelector('.viewseg button[data-view="' + v + '"]');
+  if(el && el.hidden) v = 'board';
+  document.querySelectorAll('.viewseg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.view === v));
+  document.getElementById('boardView').classList.toggle('active', v === 'board');
+  document.getElementById('timelineView').classList.toggle('active', v === 'timeline');
+  document.getElementById('changesView').classList.toggle('active', v === 'changes');
 }
-document.querySelectorAll('.viewseg button').forEach(b=>
-  b.addEventListener('click', ()=>{ setView(b.dataset.view); window.scrollTo({top:0}); }));
+document.querySelectorAll('.viewseg button').forEach(b => {
+  b.addEventListener('click', () => { setView(b.dataset.view); window.scrollTo({top:0}); });
+});
 
-buildGantt();
+// --- Access gate -------------------------------------------------------
+// Client-side only: keeps casual visitors out, NOT real security.
+// SHA-256 hashes so the phrases aren't plain text in source.
+//   two phrases are issued: an internal one (board + timeline + changes)
+//   and an external reviewer one (board + changes).
+const ACCESS = {
+  "0a7a8ecaa88b4dc1ecdcf362a6b0347c5eac80913b4096f77c5a8afc7092d1c5": "internal",
+  "cbc471ca60092bbe6c631f02bc57399b2da3d1ae491a55a1aa960a4b2e0ac7e8": "external"
+};
+const ROLE_LABEL = {internal:"Internal access", external:"Reviewer access"};
+const STORE_KEY = "orion-roadmap-role";
+let currentRole = null;
+
+async function hashPw(s){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function applyRole(role){
+  currentRole = role;
+  document.getElementById('lockScreen').hidden = true;
+  document.getElementById('app').hidden = false;
+  document.getElementById('rolePill').textContent = ROLE_LABEL[role];
+  document.querySelectorAll('[data-role]').forEach(el => {
+    el.hidden = el.dataset.role !== role;
+  });
+  if(!document.querySelector('.viewseg button[aria-pressed="true"]:not([hidden])')) setView('board');
+  buildTimeline();
+}
+
+document.getElementById('lockForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = document.getElementById('pw');
+  const role = ACCESS[await hashPw(input.value.trim())];
+  if(role){
+    try { sessionStorage.setItem(STORE_KEY, role); } catch(err){}
+    document.getElementById('pwErr').hidden = true;
+    input.classList.remove('err');
+    applyRole(role);
+  } else {
+    document.getElementById('pwErr').hidden = false;
+    input.classList.add('err');
+    input.select();
+  }
+});
+document.getElementById('pw').addEventListener('input', () => {
+  document.getElementById('pwErr').hidden = true;
+  document.getElementById('pw').classList.remove('err');
+});
+document.getElementById('signOut').addEventListener('click', () => {
+  try { sessionStorage.removeItem(STORE_KEY); } catch(err){}
+  currentRole = null;
+  document.getElementById('app').hidden = true;
+  document.getElementById('lockScreen').hidden = false;
+  document.getElementById('pw').value = '';
+  setView('board');
+});
+
+// --- Quarter-bucket timeline (internal only) ---------------------------
+const DUR = {XS:0.25, S:0.75, M:1.5, L:2, XL:4, TBD:1.5, NA:1.0};
+let timelineBuilt = false;
+
+function buildTimeline(){
+  const grid = document.getElementById('tlGrid');
+  if(!grid || timelineBuilt || currentRole !== 'internal') return;
+  timelineBuilt = true;
+
+  const items = DATA.map((f,i) => ({f, i, dur: DUR[f.size] != null ? DUR[f.size] : 1.5}))
+                    .sort((a,b) => a.f.pri - b.f.pri || a.i - b.i);
+  const tracks = [0,0];
+  items.forEach(it => {
+    const t = tracks[0] <= tracks[1] ? 0 : 1;
+    it.start = tracks[t];
+    tracks[t] = it.start + it.dur;
+  });
+
+  const base = 2026*12 + 7;                 // Aug 2026
+  const keyOf = off => {
+    const m = base + Math.floor(off), y = Math.floor(m/12), mo = m % 12;
+    return y*4 + Math.floor(mo/3);
+  };
+  const firstKey = 2026*4 + 2, lastKey = 2027*4 + 3;
+  const spans = [['Jan','Mar'],['Apr','Jun'],['Jul','Sep'],['Oct','Dec']];
+  const buckets = [];
+  for(let k = firstKey; k <= lastKey; k++){
+    const y = Math.floor(k/4), q = (k % 4) + 1;
+    buckets.push({key:k, label:'Q'+q+' '+y, sub:spans[q-1][0]+' \u2013 '+spans[q-1][1], items:[]});
+  }
+  buckets.push({key:Infinity, label:'2028 +', sub:'Beyond horizon', items:[]});
+  const place = k => buckets.find(b => b.key === k) || (k < firstKey ? buckets[0] : buckets[buckets.length-1]);
+
+  items.forEach(it => {
+    const startK = keyOf(it.start);
+    const endK = keyOf(Math.max(it.start, it.start + it.dur - 0.01));
+    const overflow = buckets[buckets.length-1];
+    const seen = new Set();
+    for(let k = startK; k <= endK; k++){
+      const b = place(k);
+      if(seen.has(b.key)) continue;
+      seen.add(b.key);
+      const starts = b.key === place(startK).key;
+      b.items.push({name: it.f.name, phase: it.f.phase, starts,
+                    size: starts ? ((EFFORT[it.f.size] || EFFORT.NA).lab) : 'cont.'});
+      if(b === overflow) break;
+    }
+  });
+
+  grid.innerHTML = buckets.map(b =>
+    '<div class="tl-col"><div class="tl-head"><b>' + b.label + '</b><span>' + b.sub + '</span></div>' +
+    '<div class="tl-items">' + (b.items.length
+      ? b.items.map(x => '<div class="tl-item' + (x.starts ? '' : ' cont') + '" style="--pc:' + ACCENT[x.phase] + '">' +
+          '<span class="tl-name">' + x.name + '</span><span class="tl-size">' + x.size + '</span></div>').join('')
+      : '<div class="tl-empty">&mdash;</div>') +
+    '</div></div>').join('');
+}
+
+
+// restore an existing session
+try {
+  const saved = sessionStorage.getItem(STORE_KEY);
+  if(saved === 'internal' || saved === 'external') applyRole(saved);
+} catch(e){}
 </script>
 </body>
 </html>
