@@ -602,16 +602,13 @@ function renderRevisions(){
     '<section class="rev"><div class="rev-head">' +
       '<span class="rev-tag">' + (i === 0 ? 'Current' : 'Earlier') + '</span>' +
       '<span class="rev-date">' + r.date + '</span><span class="rev-label">' + r.label + '</span>' +
-      '<span class="rev-sum">' + r.features.length + ' feature change' + (r.features.length === 1 ? '' : 's') +
-      ' &middot; ' + r.document.length + ' document changes</span></div>' +
+      '<span class="rev-sum">' + r.features.length + ' feature change' + (r.features.length === 1 ? '' : 's') + '</span></div>' +
     '<div class="rev-body"><h4>Feature changes</h4>' +
       r.features.map(c => {
         const k = CHANGE_KINDS[c.kind];
         return '<div class="crow" style="--cc:' + k.color + '"><span class="chg" style="--cc:' + k.color + '">' + k.label + '</span>' +
           '<div><h5>' + c.name + '</h5><p>' + c.detail + '</p></div></div>';
       }).join('') +
-      '<h4>Document changes</h4><ul class="rev-doc">' + r.document.map(d => '<li>' + d + '</li>').join('') + '</ul>' +
-      '<p class="rev-against">' + r.against + '</p>' +
     '</div></section>').join('');
 }
 renderRevisions();
