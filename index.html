@@ -6,30 +6,32 @@
 <title>Orion Product Roadmap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --board:#0F141B;
-    --panel:#161E27;
-    --panel-2:#1D2732;
-    --panel-3:#243040;
+    --board:#0C0F14;
+    --panel:#141922;
+    --panel-2:#1B2230;
+    --panel-3:#242D3C;
     --line:rgba(255,255,255,0.09);
-    --line-strong:rgba(255,255,255,0.16);
-    --text:#E7ECF2;
-    --text-dim:#9AA6B4;
-    --text-faint:#657282;
+    --line-strong:rgba(255,255,255,0.17);
+    --text:#EAEEF3;
+    --text-dim:#98A3B2;
+    --text-faint:#616C7C;
+    --brand:#0051F9;
+    --brand-soft:#5A8CFF;
     --amber:#F5B841;
     --paper:#EEF1F4;
-    --ink:#141C25;
-    --ink-dim:#4A5766;
-    /* phase hues */
-    --inflight:#35C4B4;
-    --now:#F5843F;
-    --next:#6C9BF0;
-    --later:#97A1B2;
+    --ink:#191919;
+    --ink-dim:#4A5261;
+    /* phase hues (brand blue-forward) */
+    --inflight:#06D6C4;
+    --now:#3B82F6;
+    --next:#8B5CF6;
+    --later:#EC4899;
     --radius:14px;
     --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-    --display:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+    --display:'Archivo','Segoe UI',system-ui,sans-serif;
     --body:'Inter','Segoe UI',system-ui,sans-serif;
   }
   *{box-sizing:border-box}
@@ -39,16 +41,18 @@
     font-family:var(--body);line-height:1.5;
     -webkit-font-smoothing:antialiased;
     background-image:
-      radial-gradient(1200px 600px at 80% -10%, rgba(53,196,180,0.06), transparent 60%),
-      radial-gradient(1000px 500px at 0% 0%, rgba(108,155,240,0.05), transparent 55%);
+      radial-gradient(1200px 600px at 80% -10%, rgba(0,81,249,0.12), transparent 60%),
+      radial-gradient(1000px 500px at 0% 0%, rgba(31,192,174,0.05), transparent 55%);
   }
   .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
 
   /* ---------- Header ---------- */
   header{padding:40px 0 26px;border-bottom:1px solid var(--line)}
-  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin:0 0 14px}
+  .rr-logo{display:inline-block;margin:0 0 20px;text-decoration:none}
+  .rr-logo-svg{height:30px;width:auto;display:block}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--brand-soft);margin:0 0 12px}
   h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,58px);line-height:1.02;letter-spacing:-0.02em;margin:0}
-  h1 .platform{color:var(--amber)}
+  h1 .platform{color:var(--brand-soft)}
   .sub{max-width:640px;color:var(--text-dim);font-size:16px;margin:16px 0 0}
   .meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--text-faint);letter-spacing:.04em}
   .meta b{color:var(--text-dim);font-weight:500}
@@ -58,8 +62,8 @@
   .pdef p{margin:0;font-size:14px;line-height:1.55;color:var(--text-dim)}
   .pdef-target{display:inline-block;margin-top:11px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:5px;padding:3px 8px}
   @media (max-width:720px){.phase-defs{grid-template-columns:1fr;gap:0;margin-top:24px}.pdef{border-top:0;border-left:2px solid var(--accent);padding:3px 0 3px 15px;margin-bottom:14px}}
-  .confidential{display:inline-flex;align-items:center;gap:7px;color:var(--amber)}
-  .confidential::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .confidential{display:inline-flex;align-items:center;gap:7px;color:var(--brand-soft)}
+  .confidential::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand)}
 
   /* ---------- Controls ---------- */
   .controls{position:sticky;top:0;z-index:40;background:rgba(15,20,27,0.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 0}
@@ -79,7 +83,7 @@
   .mp-toggle input:checked{background:rgba(245,132,63,0.4)}
   .mp-toggle input:checked::after{transform:translateX(16px);background:var(--now)}
   .link-btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--text-dim);background:none;border:0;cursor:pointer;padding:9px 6px;text-transform:uppercase}
-  .link-btn:hover{color:var(--amber)}
+  .link-btn:hover{color:var(--brand-soft)}
 
   /* ---------- Phase sections ---------- */
   main{padding:34px 0 10px}
@@ -164,7 +168,7 @@
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
   }
-  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:6px}
+  :focus-visible{outline:2px solid var(--brand-soft);outline-offset:2px;border-radius:6px}
 
   /* ---------- view switcher ---------- */
   .viewswitch{position:sticky;top:0;z-index:50;background:rgba(15,20,27,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 0}
@@ -207,7 +211,8 @@
 
 <header>
   <div class="wrap">
-    <p class="eyebrow">RocketRez &middot; Orion Platform</p>
+    <a href="https://www.rocketrez.com" class="rr-logo" aria-label="RocketRez" target="_blank" rel="noopener"><svg class="rr-logo-svg" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1366 431.8" style="enable-background:new 0 0 1366 431.8;" xml:space="preserve"> <style type="text/css"> .st0{fill:#FFFFFF;} </style> <path class="st0" d="M154.1,298.3l-55.9,36.2l35.2-55.1C149.9,254.7,177.3,282.4,154.1,298.3 M346.2,170.7 c-2.3,3.7-4.8,7.3-7.4,10.7V314c0,13.5-11,24.5-24.5,24.5h-61.4H231c-11.6-0.6-22.1-5.2-30.2-12.4c-2.1-1.8-4-3.9-5.7-6 c-5.7-7.1-9.4-15.9-10.4-25.4c0-0.1,0-0.3,0-0.4c-0.1-0.8-0.1-1.6-0.2-2.4c-0.5-5.3-1.9-10.3-4-15c-5-11-13.9-19.9-24.9-24.8 c-4.6-2-9.5-3.4-14.7-3.9l-3.2-0.3c-10.3-1.1-19.3-5.2-26.7-11.7c-2-1.8-3.9-3.7-5.6-5.8c-6.5-7.9-10.6-17.8-11.1-28.7v-21.9v-61.4 c0-13.5,11-24.5,24.5-24.5h132.6c3.5-2.7,7.2-5.2,11-7.6c12.9-7.9,27.8-13.8,42.4-16.9h-186c-27,0-48.9,22-48.9,48.9v178.5V314 c0,27,22,48.9,48.9,48.9H136h178.5c27,0,48.9-22,48.9-48.9V128.1C360.1,142.9,354.2,157.7,346.2,170.7"/> <path class="st0" d="M266.8,182.2c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4c-4.5-4.5-4.5-11.9,0-16.4c2.3-2.3,5.2-3.4,8.2-3.4 s5.9,1.1,8.2,3.4C271.3,170.3,271.3,177.7,266.8,182.2 M275.1,141.1c2.3-2.3,5.2-3.4,8.2-3.4s5.9,1.1,8.2,3.4 c4.5,4.5,4.5,11.9,0,16.4c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4C270.6,152.9,270.6,145.6,275.1,141.1 M242,206.9 c-2.3,2.3-5.2,3.4-8.2,3.4s-5.9-1.1-8.2-3.4c-4.5-4.5-4.5-11.9,0-16.4c2.3-2.3,5.2-3.4,8.2-3.4s5.9,1.1,8.2,3.4 C246.6,195.1,246.6,202.4,242,206.9 M247.9,112.8c-9.3,9.3-42.2,51.8-52.2,64.6L155,180l-30.4,44l39.3,1.1 c-2.6,4.7-5.1,9.1-7.5,13.9c3.1,0.7,6.2,1.7,9.1,3c11.1,4.9,20,13.8,24.9,24.8c1.3,3,2.4,6.1,3.1,9.4c4.9-2.4,9.3-4.8,14-7.4 l0.1,38.2l45.1-29.4l2.5-40.7c12.8-10,55.3-42.9,64.6-52.2c6.5-6.5,11.8-13.5,16.3-20.7c20.9-33.9,21-72.3,12.9-80.4 c-3.1-3.1-10.6-5-20.6-5c-16.1,0-38.7,4.9-59.5,17.8C261.5,100.8,254.4,106.3,247.9,112.8"/> <path class="st0" d="M1290.2,263.9v-21H1254l34.8-51.4v-9.6h-76.7v21h32.6l-34.5,50.9v10.1H1290.2z M1145.7,206.2 c1.2-2,3-3.6,5.3-4.7c2.3-1.1,5.1-1.7,8.5-1.7c2.2,0,4.1,0.3,5.8,0.9c1.7,0.6,3.2,1.5,4.4,2.7c1.2,1.2,2.1,2.6,2.7,4.3 s0.9,3.7,0.9,5.8h-30.1C1143.7,210.6,1144.5,208.2,1145.7,206.2 M1179.5,263.6c5.5-1.5,10.2-3.5,13.9-6.3c3.7-2.7,6.5-6.1,8.4-10 s2.8-8.3,2.8-13.2h-30c0,1.7-0.3,3.2-0.8,4.7s-1.4,2.7-2.6,3.8s-2.7,1.9-4.7,2.6c-1.9,0.6-4.3,0.9-7.1,0.9c-3.9,0-7.1-0.7-9.6-2.1 c-2.4-1.4-4.2-3.4-5.3-6.1c-1.1-2.7-1.6-5.9-1.6-9.6h61.5V223c0-9.8-1.8-17.9-5.4-24.2s-8.9-11-15.8-14.1s-15.3-4.6-25.1-4.6 c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.2c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.8,1.9,17.9,5.8,24.2s9.4,11,16.6,14.1 s15.7,4.6,25.6,4.6C1167.5,265.7,1174,265,1179.5,263.6 M1037.8,181.4h24.1c1.9,0,3.5,0.5,5,1.5s2.6,2.3,3.4,4s1.2,3.6,1.2,5.7 c0,3.5-0.9,6.3-2.8,8.5c-1.9,2.1-4.1,3.2-6.8,3.2h-24.1L1037.8,181.4L1037.8,181.4z M1037.8,263.9V228h16.9l16.3,35.9h38.5l-21-41.6 c5.5-3.2,9.8-7.5,13-12.8s4.8-11.4,4.8-18.3c0-6-1.3-11.6-4-16.8s-6.7-9.4-12-12.6c-5.3-3.2-12-4.8-20-4.8h-66.9v106.9L1037.8,263.9 L1037.8,263.9z M976.7,265.4c2.4-0.2,4.9-0.5,7.3-1c2.4-0.5,4.5-1,6.1-1.5v-18.2h-8.7c-3.5,0-5.9-0.9-7-2.7s-1.7-4.5-1.7-8v-31.2 h17.4v-21h-17.4V157h-23l-6.7,24.9h-12.7v21h11.5v41c0,5.6,1.2,10,3.6,13.2c2.4,3.2,5.7,5.5,10,6.8s9.2,1.9,14.8,1.9 C972.1,265.7,974.2,265.6,976.7,265.4 M864.8,206.2c1.2-2,3-3.6,5.3-4.7c2.3-1.1,5.1-1.7,8.5-1.7c2.2,0,4.1,0.3,5.8,0.9 c1.7,0.6,3.2,1.5,4.4,2.7s2.1,2.6,2.7,4.3c0.6,1.7,0.9,3.7,0.9,5.8h-30.1C862.7,210.6,863.5,208.2,864.8,206.2 M898.5,263.6 c5.5-1.5,10.2-3.5,13.9-6.3c3.7-2.7,6.5-6.1,8.4-10s2.8-8.3,2.8-13.2h-30c0,1.7-0.3,3.2-0.8,4.7s-1.4,2.7-2.6,3.8 c-1.2,1.1-2.7,1.9-4.7,2.6c-1.9,0.6-4.3,0.9-7.1,0.9c-3.9,0-7.1-0.7-9.6-2.1c-2.4-1.4-4.2-3.4-5.3-6.1c-1.1-2.7-1.6-5.9-1.6-9.6 h61.5V223c0-9.8-1.8-17.9-5.4-24.2c-3.6-6.3-8.9-11-15.8-14.1c-6.9-3.1-15.3-4.6-25.1-4.6c-9.3,0-17.4,1.6-24.3,4.7 c-6.9,3.2-12.2,7.9-16.1,14.2c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.8,1.9,17.9,5.8,24.2c3.9,6.3,9.4,11,16.6,14.1 c7.2,3.1,15.7,4.6,25.6,4.6C886.5,265.7,893,265,898.5,263.6 M770,263.9v-17.7l10.7-10.4l17.2,28.1H833l-31-49l30.3-33.1h-36 L770,213.2v-62.1h-30.9v112.8L770,263.9L770,263.9z M699.5,263.7c5.5-1.3,10.3-3.4,14.4-6.2c4.1-2.8,7.4-6.4,9.7-11 c2.3-4.5,3.5-9.9,3.5-16.1h-28.7c0,3.3-0.6,6-1.9,8.2c-1.2,2.1-3,3.7-5.4,4.7c-2.3,1-5.2,1.5-8.6,1.5c-3.7,0-6.8-0.7-9.1-2.1 c-2.3-1.4-4-3.4-5.1-6s-1.6-5.7-1.6-9.3v-8.9c0-3.6,0.5-6.8,1.6-9.4c1-2.6,2.7-4.7,4.9-6.1c2.2-1.4,5.1-2.1,8.8-2.1 c3.2,0,6,0.5,8.2,1.5c2.3,1,4,2.5,5.2,4.6s1.8,4.7,1.8,7.9h30c0-6.2-1.2-11.5-3.5-16s-5.6-8.1-9.7-10.9c-4.1-2.8-9-4.9-14.4-6.2 c-5.5-1.3-11.3-2-17.6-2c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.3s-5.7,14.4-5.7,24c0,9.5,1.9,17.5,5.7,23.8 c3.8,6.4,9.2,11.1,16.1,14.3c6.9,3.2,15,4.7,24.3,4.7C688.2,265.7,694.1,265.1,699.5,263.7 M573.7,242.7c-2.2-1.4-3.9-3.4-4.9-6 s-1.6-5.7-1.6-9.3v-8.9c0-3.6,0.5-6.8,1.6-9.4c1-2.6,2.7-4.7,4.9-6.1c2.2-1.4,5.1-2.1,8.8-2.1c3.6,0,6.6,0.7,8.9,2.1 c2.3,1.4,3.9,3.4,5,6.1c1,2.6,1.6,5.8,1.6,9.4v8.9c0,3.6-0.5,6.7-1.6,9.3c-1,2.6-2.7,4.6-5,6s-5.2,2.1-8.9,2.1 C578.9,244.8,575.9,244.1,573.7,242.7 M606.9,261c6.9-3.2,12.3-7.9,16.2-14.3c3.8-6.4,5.7-14.3,5.7-23.8c0-9.6-1.9-17.6-5.7-23.9 c-3.8-6.3-9.2-11.1-16.2-14.2c-6.9-3.2-15.1-4.7-24.4-4.7c-9.3,0-17.4,1.6-24.3,4.7c-6.9,3.2-12.2,7.9-16.1,14.2 c-3.8,6.3-5.7,14.3-5.7,23.9c0,9.5,1.9,17.5,5.7,23.8c3.8,6.4,9.2,11.1,16.1,14.3c6.9,3.2,15,4.7,24.3,4.7S599.9,264.1,606.9,261 M464,181.4h24c1.9,0,3.5,0.5,5,1.5c1.4,1,2.6,2.3,3.4,4s1.2,3.6,1.2,5.7c0,3.5-0.9,6.3-2.8,8.5c-1.9,2.1-4.1,3.2-6.8,3.2h-24V181.4 z M464,263.9V228h16.9l16.3,35.9h38.5l-21-41.6c5.5-3.2,9.8-7.5,13-12.8s4.8-11.4,4.8-18.3c0-6-1.3-11.6-4-16.8s-6.7-9.4-12-12.6 c-5.3-3.2-12-4.8-20-4.8h-66.9v106.9L464,263.9L464,263.9z"/> </svg></a>
+    <p class="eyebrow">Orion Platform</p>
     <h1>Product Roadmap<span class="platform">.</span></h1>
     <p class="sub">Where the platform is headed &mdash; grouped by delivery phase, ordered by priority, sized by effort. Select any feature to see its current state and the desired-state detail behind it.</p>
     <div class="phase-defs">
@@ -352,10 +357,10 @@ const DATA = [
    current:"Dates read inconsistently today — day versus month is easy to misread. They&rsquo;re being standardized across every screen for clarity and consistency; done first because later work depends on it.",
    desired:["Consistent date formatting across the platform"]},
 
-  {phase:"now", pri:6, mp:false, size:"TBD", name:"Reporting",
-   subtext:"Native in-platform reporting to replace today&rsquo;s external workarounds, plus audit trails.",
-   current:"There&rsquo;s no native reporting today — the numbers Morey&rsquo;s needs come through external tools (Snowflake and the Tidal system, roughly 15 minutes behind live), and there&rsquo;s no audit trail for staff activity or refund / comp-ticket issuance. Native, in-platform reporting is being scoped, along with activity history that shows what happened, when, and by whom.",
-   desired:[]},
+  {phase:"now", pri:6, mp:false, size:"TBD", name:"API",
+   subtext:"Exposing Orion&rsquo;s APIs to external users, with the framework to support them safely.",
+   current:"The existing system isn&rsquo;t structured to expose the APIs externally. The internal APIs themselves are suitable for external users, but need a framework around them — security, tokenization, rate limiting, and so on.",
+   desired:["Continue to build APIs alongside roadmap functionality, with external use-cases in mind","Build the external structures — security, performance, and so on"]},
 
   {phase:"now", pri:7, mp:false, size:"TBD", name:"Accounting / Finance",
    subtext:"Finance-grade functions — cash movement, stored-value insight, and accounting reporting.",
@@ -518,7 +523,7 @@ function cardHTML(f, idx){
   const verifyBlock = f.verifyNote ? `<div class="verify-note">⚠ ${f.verifyNote}</div>` : '';
 
   return `
-  <div class="card" data-phase="${f.phase}" data-mp="${f.mp}" data-name="${f.name.toLowerCase()}" style="--accent:var(--${f.phase});--accent-ink:${f.phase==='now'?'#b85a1f':f.phase==='next'?'#3763b8':f.phase==='inflight'?'#1c8378':'#5a6376'}">
+  <div class="card" data-phase="${f.phase}" data-mp="${f.mp}" data-name="${f.name.toLowerCase()}" style="--accent:var(--${f.phase});--accent-ink:${f.phase==='now'?'#1d5fd6':f.phase==='next'?'#6d28d9':f.phase==='inflight'?'#0a8f82':'#be185d'}">
     <button class="card-btn" aria-expanded="false" data-idx="${idx}">
       <div class="card-top">
         <span class="gate">${gate}</span>
