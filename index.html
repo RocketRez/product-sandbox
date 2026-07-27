@@ -698,10 +698,53 @@ const ROLE_LABEL = {internal:"Internal access", external:"Reviewer access"};
 const STORE_KEY = "orion-roadmap-role";
 let currentRole = null;
 
-async function hashPw(s){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+// Pure-JS SHA-256 — crypto.subtle is unavailable on file:// and plain http.
+function sha256(ascii){
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var mp=Math.pow, maxW=mp(2,32), i, j, result='';
+  var words=[], asciiBitLength=ascii.length*8;
+  var hash=sha256.h=sha256.h||[], k=sha256.k=sha256.k||[], primeCounter=k.length;
+  var isComposite={};
+  for(var candidate=2; primeCounter<64; candidate++){
+    if(!isComposite[candidate]){
+      for(i=0;i<313;i+=candidate) isComposite[i]=candidate;
+      hash[primeCounter]=(mp(candidate,.5)*maxW)|0;
+      k[primeCounter++]=(mp(candidate,1/3)*maxW)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56) ascii+='\x00';
+  for(i=0;i<ascii.length;i++){
+    j=ascii.charCodeAt(i);
+    if(j>>8) return;
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=((asciiBitLength/maxW)|0);
+  words[words.length]=(asciiBitLength);
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16), oldHash=hash;
+    hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15], w2=w[i-2];
+      var a=hash[0], e=hash[4];
+      var temp1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+
+        (w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var temp2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(temp1+temp2)|0].concat(hash);
+      hash[4]=(hash[4]+temp1)|0;
+    }
+    for(i=0;i<8;i++) hash[i]=(hash[i]+oldHash[i])|0;
+  }
+  for(i=0;i<8;i++){
+    for(j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b<16)?0:'')+b.toString(16);
+    }
+  }
+  return result;
 }
+function utf8(s){ return unescape(encodeURIComponent(s)); }
+function hashPw(s){ return sha256(utf8(s)); }
 
 function applyRole(role){
   currentRole = role;
@@ -715,10 +758,10 @@ function applyRole(role){
   buildTimeline();
 }
 
-document.getElementById('lockForm').addEventListener('submit', async e => {
+document.getElementById('lockForm').addEventListener('submit', function(e){
   e.preventDefault();
   const input = document.getElementById('pw');
-  const role = ACCESS[await hashPw(input.value.trim())];
+  const role = ACCESS[hashPw(input.value.trim())];
   if(role){
     try { sessionStorage.setItem(STORE_KEY, role); } catch(err){}
     document.getElementById('pwErr').hidden = true;
