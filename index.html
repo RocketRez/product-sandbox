@@ -233,7 +233,6 @@
       <button data-view="changes" aria-pressed="false">What&rsquo;s changed</button>
     </div>
     <span class="role-group"><span class="role-pill" id="rolePill"></span><button class="signout" id="signOut">Sign out</button></span>
-    <button class="btn" id="printBtn">Print / PDF</button>
   </div>
 </div>
 
@@ -663,11 +662,6 @@ function setAll(open){
 toggleAllBtn.addEventListener('click', () => {
   const anyClosed = [...document.querySelectorAll('.card')].some(c => c.style.display !== 'none' && !c.classList.contains('open'));
   setAll(anyClosed);
-});
-
-document.getElementById('printBtn').addEventListener('click', () => {
-  setAll(true);
-  setTimeout(() => window.print(), 120);
 });
 
 function setView(v){
