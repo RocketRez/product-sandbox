@@ -163,8 +163,33 @@
   .chip[aria-pressed="true"]{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
   .chip[aria-pressed="true"] kbd{background:var(--bad);color:var(--panel)}
   .chips.need .chip{border-color:var(--bad)}
-  .preview{font-size:13px;color:var(--text-2);padding:10px 12px;border-radius:8px;background:var(--sunken)}
-  .preview b{color:var(--text);font-weight:500}
+  .preview{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--sunken);display:grid;gap:2px}
+  .preview .faint{font-size:12px}
+  .issue{border-radius:10px;border:1px solid color-mix(in srgb,var(--warn) 30%,var(--line));background:var(--warn-soft);padding:14px;display:grid;gap:10px}
+  .issue.bad{border-color:color-mix(in srgb,var(--bad) 30%,var(--line));background:var(--bad-soft)}
+  .issue .eyebrow{font-size:12px;font-weight:600;color:var(--warn)}
+  .issue.bad .eyebrow{color:var(--bad)}
+  .issue-title{font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .issue-reason{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--panel);text-align:left;font-size:17px;font-weight:600;letter-spacing:-.01em;transition:border-color .12s,box-shadow .12s}
+  .issue-reason:hover{border-color:var(--text-3)}
+  .issue-reason .box{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line-strong);display:grid;place-items:center;color:transparent;flex:none}
+  .issue-reason .box svg{width:12px;height:12px}
+  .issue-reason[aria-pressed="true"]{border-color:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 14%,transparent)}
+  .issue-reason[aria-pressed="true"] .box{background:var(--bad);border-color:var(--bad);color:var(--panel)}
+  .issue-reason .t{flex:1;min-width:0}
+  .issue-reason kbd{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-3);border:1px solid var(--line-strong);border-radius:4px;padding:0 5px;line-height:18px}
+  .issue.need .issue-reason{border-color:var(--bad)}
+  .proof{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+  .proof > svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--warn)}
+  .issue.bad .proof > svg{color:var(--bad)}
+  .proof .checks{font-size:12px;gap:5px}
+  .detail .checks li{grid-template-columns:18px minmax(0,1fr) 64px 36px}
+  .detail .checks .v{text-align:right}
+  .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--text-3) 22%,transparent);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:3px;background:var(--ok)}
+  .bar.warn i{background:var(--warn)} .bar.bad i{background:var(--bad)}
+  .linkbtn{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--text-2);font-size:13px;font-weight:500;justify-self:start}
+  .linkbtn:hover{color:var(--text)}
   .dfoot{position:sticky;bottom:0;z-index:5;padding:14px 20px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border-radius:0 0 10px 10px;box-shadow:0 -1px 0 var(--line)}
   .dfoot .sp{flex:1}
   .shake{animation:shake .3s}
@@ -401,45 +426,43 @@
     hat:'Please remove hats or anything covering your face. Religious head coverings are fine.'
   };
   const ACTIONS = {retake:'Ask member to retake', review:'Send for review', approve:'Ignore'};
+  // Ordered by how often staff used each reason in the last 30 days; number keys follow this order.
   const REASONS = [
-    {id:'glasses', label:'Sunglasses', guest:'Please take off sunglasses so we can see your eyes.'},
-    {id:'hat', label:'Hat or face covering', guest:'Please remove hats or anything covering your face. Religious head coverings are fine.'},
-    {id:'dark', label:'Too dark', guest:'Your photo is too dark. Try facing a window or a lamp.'},
-    {id:'blur', label:'Blurry', guest:'Your photo is blurry. Hold your phone steady and tap your face to focus.'},
-    {id:'frame', label:'Face too small or turned', guest:'Face the camera and move closer so your head and shoulders fill the frame.'},
-    {id:'person', label:'Not the member', guest:'The photo must show the person named on this membership.'},
-    {id:'group', label:'More than one person', guest:'Only the member should be in the photo.'}
-  ];
+    {id:'dark', label:'Too dark', guest:'Your photo is too dark. Try facing a window or a lamp.', uses:412},
+    {id:'blur', label:'Blurry', guest:'Your photo is blurry. Hold your phone steady and tap your face to focus.', uses:287},
+    {id:'hat', label:'Hat or face covering', guest:'Please remove hats or anything covering your face. Religious head coverings are fine.', uses:198},
+    {id:'glasses', label:'Sunglasses', guest:'Please take off sunglasses so we can see your eyes.', uses:143},
+    {id:'frame', label:'Face too small or turned', guest:'Face the camera and move closer so your head and shoulders fill the frame.', uses:96},
+    {id:'group', label:'More than one person', guest:'Only the member should be in the photo.', uses:54},
+    {id:'person', label:'Not the member', guest:'The photo must show the person named on this membership.', uses:12}
+  ].sort((a, b) => b.uses - a.uses);
   const reasonById = id => REASONS.find(r => r.id === id);
   const CHECK_REASON = {face:'frame', one:'group', size:'frame', pose:'frame', light:'dark', sharp:'blur', eyes:'glasses', hat:'hat'};
+  const PROOF = {face:'No face detected', one:'More than one face detected', size:'Face is small in the frame', pose:'Head is turned or tilted',
+    light:'Face is underexposed', sharp:'Face is out of focus', eyes:'Eye area is much darker than the face', hat:'Forehead colour differs from the face'};
+  const BASE = {face:99, one:100, size:94, pose:92, light:90, sharp:96, eyes:95, hat:93};
+  const sc = (over = {}) => CHECKS.map(c => ({key:c.key, label:c.label, status:over[c.key] ? over[c.key][0] : 'ok', score:over[c.key] ? over[c.key][1] : BASE[c.key]}));
 
-  const ok = l => ['ok', l, ''];
   const QUEUE = [
     {id:'m1', name:'Maya Okafor', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418832', household:'Okafor · 4 members', by:'Maya Okafor', mins:12,
       photo:{skin:'#8D5524', hair:'#161616', bg:'#CFE3F5', shirt:'#2F6F4F', style:'curly', glasses:'tint'},
-      flag:'Possible sunglasses', note:'Tinted lenses. Eyes partly visible.', sev:'warn',
-      checks:[ok('Face detected'), ok('One person'), ok('Face size'), ok('Facing camera'), ok('Lighting'), ok('In focus'), ['warn', 'Eyes visible', '64%'], ok('Head uncovered')], suggest:['glasses']},
+      sev:'warn', issue:{reason:'glasses', proof:'Tinted lenses, eyes partly visible'}, checks:sc({eyes:['warn', 64]})},
     {id:'m2', name:'Ethan Brooks', age:'Child · 9', product:'Family Pass 2027', order:'RR-418790', household:'Brooks · 3 members', by:'Dana Brooks', mins:21,
       photo:{skin:'#F1C27D', hair:'#A0522D', bg:'#E8DCC8', shirt:'#E07A5F', small:true, oy:8, blur:.7},
-      flag:'Soft after crop', note:'Face was small in the original and enlarged 1.9×.', sev:'warn',
-      checks:[ok('Face detected'), ok('One person'), ['warn', 'Face size', '64px'], ok('Facing camera'), ok('Lighting'), ['warn', 'In focus', 'soft'], ok('Eyes visible'), ok('Head uncovered')], suggest:['blur'], zoom:1.9},
-    {id:'m3', name:'Priya Raman', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418755', household:'Raman · 2 members', by:'Priya Raman', mins:34, renewal:true,
+      sev:'warn', issue:{reason:'blur', proof:'Face was small and enlarged 1.9× by the crop, so it looks soft'}, checks:sc({size:['warn', 58], sharp:['warn', 52]}), zoom:1.9},
+    {id:'m3', name:'Priya Raman', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418755', household:'Raman · 2 members', by:'Priya Raman', mins:34,
       photo:{skin:'#C68642', hair:'#1E1410', bg:'#DDE8D5', shirt:'#6D28D9', style:'short'},
       prev:{skin:'#C68642', hair:'#1E1410', bg:'#E3E0F0', shirt:'#264653', style:'long'},
-      flag:'Renewal with new photo', note:'Compare with the photo approved last season.', sev:'warn',
-      checks:CHECKS.map(c => ok(c.label)), suggest:[]},
+      sev:'warn', issue:{label:'New photo on renewal', proof:'Compare with the photo approved last season'}, checks:sc()},
     {id:'m4', name:'Jordan Lee', age:'Adult', product:'Season Pass – Silver 2027', order:'RR-418702', household:'Lee · 2 members', by:'Jordan Lee', mins:47,
       photo:{skin:'#E8BE8F', hair:'#0F0F0F', bg:'#F2D7D9', shirt:'#1D3557', style:'short'},
-      dup:'Casey Lee', flag:'Same photo on 2 memberships', note:'Also uploaded for Casey Lee, Season Pass – Silver 2027.', sev:'bad',
-      checks:CHECKS.map(c => ok(c.label)), suggest:['person']},
+      sev:'bad', issue:{reason:'person', proof:'Same photo was uploaded for Casey Lee (Season Pass – Silver 2027)'}, checks:sc()},
     {id:'m5', name:'Sofia Martinez', age:'Teen · 15', product:'Season Pass – Gold 2027', order:'RR-418677', household:'Martinez · 5 members', by:'Ana Martinez', mins:58,
       photo:{skin:'#D9A066', hair:'#2B1B12', bg:'#C9D6DF', shirt:'#F4A261', style:'long', dark:.45},
-      flag:'Low light', note:'Dark, but the face is readable.', sev:'warn',
-      checks:[ok('Face detected'), ok('One person'), ok('Face size'), ok('Facing camera'), ['warn', 'Lighting', 'dark'], ok('In focus'), ok('Eyes visible'), ok('Head uncovered')], suggest:['dark']},
+      sev:'warn', issue:{reason:'dark', proof:'Face is dark but still readable'}, checks:sc({light:['warn', 57]})},
     {id:'m6', name:'Liam Chen', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418641', household:'Chen · 1 member', by:'Liam Chen', mins:73,
       photo:{skin:'#F0C8A0', hair:'#121212', bg:'#D6E6F0', shirt:'#2A9D8F', hat:'#C0392B'},
-      flag:'Possible head covering', note:'Cap may cover the forehead.', sev:'warn',
-      checks:[ok('Face detected'), ok('One person'), ok('Face size'), ok('Facing camera'), ok('Lighting'), ok('In focus'), ok('Eyes visible'), ['warn', 'Head uncovered', 'unsure']], suggest:['hat']}
+      sev:'warn', issue:{reason:'hat', proof:'Cap may cover the forehead'}, checks:sc({hat:['warn', 61]})}
   ];
   const SPOT = [
     ['Noah Patel', {skin:'#C68642', hair:'#111', bg:'#DCE7F3', shirt:'#2B2D42'}],
@@ -469,7 +492,7 @@
 
   /* ---------- state ---------- */
   const S = {
-    view:'queue', qtab:'review', sel:0, keysOpen:false,
+    view:'queue', qtab:'review', sel:0, keysOpen:false, allChecks:false,
     queue: QUEUE.map(q => ({...q})), done: [],
     reasons:{}, crop:{}, shownAt: performance.now(),
     spot:{flags:{}, done:false},
@@ -496,7 +519,7 @@
     opts:{spot:5, autocrop:true, reuse:true}
   };
   S.queue.forEach(q => initItem(q));
-  function initItem(q){ S.reasons[q.id] = new Set(q.suggest.filter(reasonById)); S.crop[q.id] = {orig:false, zoom:q.zoom || 1}; }
+  function initItem(q){ S.reasons[q.id] = new Set(q.issue.reason && reasonById(q.issue.reason) ? [q.issue.reason] : []); S.crop[q.id] = {orig:false, zoom:q.zoom || 1}; }
   const allMembers = () => [...S.members, ...S.extras];
   const memberById = id => allMembers().find(m => m.id === id);
 
@@ -533,7 +556,7 @@
       <div class="pagehead">
         <div><h1>Photo review</h1><p class="num">Today · ${total} uploaded · ${S.stats.auto} auto-approved · ${S.stats.returned} returned to member</p></div>
         <div class="popwrap"><button class="btn ghost sm" data-act="keys" aria-expanded="${S.keysOpen}">${I.keys.replace('<svg', '<svg width="16" height="14"')} Shortcuts</button>
-          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve</span><span><kbd>A</kbd></span><span>Deny</span><span><kbd>D</kbd></span><span>Toggle reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Next / previous</span><span><kbd>J</kbd> <kbd>K</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
+          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve</span><span><kbd>A</kbd></span><span>Deny</span><span><kbd>D</kbd></span><span>Toggle reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Skip</span><span><kbd>S</kbd></span><span>Next / previous</span><span><kbd>J</kbd> <kbd>K</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
         </div>
       </div>
       <div class="subnav" role="tablist">${tabs.map(([k, l, c]) => `<button role="tab" data-act="qtab" data-k="${k}" aria-selected="${S.qtab === k}">${l} <span class="n">${c}</span></button>`).join('')}</div>
@@ -547,11 +570,15 @@
     S.sel = Math.max(0, Math.min(S.sel, S.queue.length - 1));
     const list = S.queue.map((q, i) => `<li><button class="qrow" data-act="select" data-i="${i}" aria-current="${i === S.sel}">
         <span class="ph">${portrait(q.photo, q.name)}</span>
-        <span style="min-width:0;display:grid;gap:2px"><span class="nm">${esc(q.name)}</span><span class="fl"><span class="dot ${q.sev === 'bad' ? 'bad' : ''}"></span><span style="overflow:hidden;text-overflow:ellipsis">${esc(q.flag)}</span></span></span>
+        <span style="min-width:0;display:grid;gap:2px"><span class="nm">${esc(q.name)}</span><span class="fl"><span class="dot ${q.sev === 'bad' ? 'bad' : ''}"></span><span style="overflow:hidden;text-overflow:ellipsis">${esc(issueLabel(q))}</span></span></span>
         <span class="age">${q.mins < 1 ? '<span class="newtag">New</span>' : ago(q.mins)}</span>
       </button></li>`).join('');
     return `<div class="qgrid"><div class="panel"><ol class="qlist" aria-label="Photos to review">${list}</ol></div>${renderDetail(S.queue[S.sel])}</div>`;
   }
+
+  function issueLabel(q){ const r = q.issue.reason && reasonById(q.issue.reason); return r ? r.label : (q.issue.label || 'Needs review'); }
+  const keyOf = id => { const i = REASONS.findIndex(r => r.id === id); return i > -1 && i < 9 ? i + 1 : ''; };
+  const scoreRow = x => `<li><span class="ic ${x.status}">${STATUS_IC[x.status]}</span><span>${esc(x.label)}</span><span class="bar ${x.status}" aria-hidden="true"><i style="width:${x.score}%"></i></span><span class="v">${x.score}%</span></li>`;
 
   function renderDetail(q){
     const c = S.crop[q.id], sel = S.reasons[q.id];
@@ -563,34 +590,45 @@
     };
     const photos = q.prev ? `<div class="photos pair">${frame(q.prev, 'Last season', false)}${frame(q.photo, 'New', true)}</div>` : `<div class="photos">${frame(q.photo, '', true)}</div>`;
     const canOrig = (q.photo.img && q.photo.orig) || (q.zoom || 1) > 1;
-    const cropbar = !canOrig ? '' : `<div class="cropbar">${canOrig ? `<span class="seg"><button data-act="crop" data-v="auto" aria-pressed="${!showOrig}">Cropped</button><button data-act="crop" data-v="orig" aria-pressed="${showOrig}">Original</button></span>` : ''}${showOrig ? '' : `<input type="range" id="zoom" min="1" max="2.4" step="0.05" value="${c.zoom}" aria-label="Zoom">`}</div>`;
-    const chips = REASONS.map((r, i) => `<button class="chip" data-act="reason" data-r="${r.id}" aria-pressed="${sel.has(r.id)}">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${esc(r.label)}</button>`).join('');
+    const cropbar = !canOrig ? '' : `<div class="cropbar"><span class="seg"><button data-act="crop" data-v="auto" aria-pressed="${!showOrig}">Cropped</button><button data-act="crop" data-v="orig" aria-pressed="${showOrig}">Original</button></span>${showOrig ? '' : `<input type="range" id="zoom" min="1" max="2.4" step="0.05" value="${c.zoom}" aria-label="Zoom">`}</div>`;
+
+    const sug = q.issue.reason && reasonById(q.issue.reason);
+    const flagged = q.checks.filter(x => x.status !== 'ok');
+    const proof = `<div class="proof">${I.alert}<div style="display:grid;gap:8px;min-width:0"><span>${esc(q.issue.proof)}</span>${flagged.length ? `<ul class="checks">${flagged.map(scoreRow).join('')}</ul>` : ''}</div></div>`;
+    const hero = sug
+      ? `<div class="issue ${q.sev}" id="hero">
+          <span class="eyebrow">Suggested reason for denial</span>
+          <button class="issue-reason" data-act="reason" data-r="${sug.id}" aria-pressed="${sel.has(sug.id)}"><span class="box">${I.check}</span><span class="t">${esc(sug.label)}</span>${keyOf(sug.id) ? `<kbd>${keyOf(sug.id)}</kbd>` : ''}</button>
+          ${proof}
+        </div>`
+      : `<div class="issue ${q.sev}" id="hero"><span class="eyebrow">Needs review</span><div class="issue-title">${esc(issueLabel(q))}</div>${proof}</div>`;
+    const others = REASONS.filter(r => !sug || r.id !== sug.id);
+    const chips = others.map(r => `<button class="chip" data-act="reason" data-r="${r.id}" aria-pressed="${sel.has(r.id)}">${keyOf(r.id) ? `<kbd>${keyOf(r.id)}</kbd>` : ''}${esc(r.label)}</button>`).join('');
     const chosen = REASONS.filter(r => sel.has(r.id));
-    const preview = chosen.length ? `<div class="preview">Member sees: <b>${chosen.map(r => esc(r.guest)).join(' ')}</b></div>` : '';
+    const preview = chosen.length ? `<div class="preview"><span class="faint">Member will see</span><span>${chosen.map(r => esc(r.guest)).join(' ')}</span></div>` : '';
+    const all = S.allChecks ? `<ul class="checks" style="margin-top:4px">${q.checks.map(scoreRow).join('')}</ul>` : '';
     return `<article class="panel detail" aria-label="${esc(q.name)}">
       <div class="dtop">
         <div style="min-width:0"><h2>${esc(q.name)}</h2><div class="sub">${esc(q.product)} · ${esc(q.age)}</div></div>
-        <span class="pill ${q.sev === 'bad' ? 'bad' : 'warn'}">${esc(q.flag)}</span>
       </div>
       <div class="dmain">
         <div style="display:grid;gap:10px;align-content:start">${photos}${cropbar}</div>
-        <div style="display:grid;gap:20px;align-content:start;min-width:0">
-          <div class="flagnote ${q.sev === 'bad' ? 'bad' : ''}">${I.alert}<span>${esc(q.note)}</span></div>
-          <ul class="checks">${q.checks.map(([s, l, v]) => checkRow(s, l, v)).join('')}</ul>
+        <div style="display:grid;gap:18px;align-content:start;min-width:0">
+          <div style="display:grid;gap:10px">${hero}${preview}</div>
+          <div class="sect"><span class="sectlabel">${sug ? 'Other reasons' : 'Reason for denial'}</span><div class="chips" id="chips">${chips}</div></div>
+          <div class="sect">
+            <button class="linkbtn" data-act="allchecks" aria-expanded="${S.allChecks}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${S.allChecks ? 90 : 0}deg);transition:transform .15s"><path d="M6 3.5L10.5 8 6 12.5"/></svg>${flagged.length ? `All ${q.checks.length} checks · ${flagged.length} flagged` : `All ${q.checks.length} checks passed`}</button>
+            ${all}
+          </div>
           <dl class="kv"><dt>Order</dt><dd class="mono">${q.order}</dd><dt>Household</dt><dd>${esc(q.household)}</dd><dt>Uploaded by</dt><dd>${esc(q.by)}</dd><dt>Uploaded</dt><dd>${q.mins < 1 ? 'Just now' : q.mins < 60 ? q.mins + ' min ago' : ago(q.mins) + ' ago'}</dd></dl>
         </div>
       </div>
-      <div style="padding:0 20px 20px" class="sect">
-        <span class="sectlabel">Reason for denial</span>
-        <div class="chips" id="chips">${chips}</div>
-        ${preview}
-      </div>
       <div class="dfoot">
-        <button class="btn approve" data-act="approve">Approve <kbd>A</kbd></button>
-        <button class="btn deny" data-act="deny" id="denybtn">Deny${chosen.length ? '' : '…'} <kbd>D</kbd></button>
-        <span class="sp"></span>
         <span class="faint num" style="font-size:12px">${S.sel + 1} of ${S.queue.length}</span>
-        <button class="btn ghost sm" data-act="skip" ${S.queue.length < 2 ? 'disabled' : ''}>Skip</button>
+        <span class="sp"></span>
+        <button class="btn ghost" data-act="skip" ${S.queue.length < 2 ? 'disabled' : ''}>Skip <kbd>S</kbd></button>
+        <button class="btn deny" data-act="deny" id="denybtn">Deny${chosen.length ? '' : '…'} <kbd>D</kbd></button>
+        <button class="btn approve" data-act="approve">Approve <kbd>A</kbd></button>
       </div>
     </article>`;
   }
@@ -629,7 +667,7 @@
     const q = S.queue[S.sel]; if (!q) return;
     const reasons = REASONS.filter(r => S.reasons[q.id].has(r.id)).map(r => r.id);
     if (kind === 'deny' && !reasons.length) {
-      const ch = $('#chips'); if (ch) { ch.classList.add('need'); ch.classList.remove('shake'); void ch.offsetWidth; ch.classList.add('shake'); }
+      ['#chips', '#hero'].forEach(sel => { const el = $(sel); if (el) { el.classList.add('need'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } });
       toast('Choose a reason to deny', 'warn');
       return;
     }
@@ -734,6 +772,7 @@
       const msg = all.m < T.imageDark ? 'We couldn\'t find a face, probably because the photo is too dark. Try facing a window or a lamp.'
         : 'We couldn\'t find a face. Use a sharp, front-facing photo where your head and shoulders fill most of the frame.';
       add('face', 'Face found', 'bad', 'none', msg, all.m < T.imageDark ? 'dark' : 'frame');
+      out.checks[0].score = 0;
       return out;
     }
     dets.sort((a, b) => b.detection.box.area - a.detection.box.area);
@@ -809,6 +848,12 @@
     add('hat', 'No head covering', hatSt, hatSt === 'ok' ? '' : 'unsure', MSG.hat, 'hat');
 
     // lighting and sharpness come first so a dark or blurry photo isn't reported as sunglasses
+    const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+    const SCORE = {face:main.detection.score * 100, one:others ? 0 : 100, size:box.height / T.faceWarn * 100,
+      pose:100 - Math.abs(yaw) * 150 - Math.max(0, Math.abs(roll) - 5) * 1.5,
+      light:lum < T.lumWarn[0] ? lum / T.lumWarn[0] * 100 : lum > T.lumWarn[1] ? (255 - lum) / (255 - T.lumWarn[1]) * 100 : 100,
+      sharp:sharp / T.sharpWarn * 100, eyes:(ratio - .2) / .4 * 100, hat:100 - dist / 1.3};
+    out.checks.forEach(c => { c.score = clamp(SCORE[c.key]); });
     const ORDER = ['face', 'one', 'size', 'pose', 'light', 'sharp', 'eyes', 'hat'];
     out.checks.sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
 
@@ -901,7 +946,7 @@
   }
 
   function sampleAnalysis(s){
-    return {photo:s.photo, checks:CHECKS.map(c => ({key:c.key, status:s.st[c.key] || 'ok', value:s.st[c.key] ? (s.st[c.key] === 'bad' ? 'failed' : 'unsure') : '', guest:MSG[c.key]}))};
+    return {photo:s.photo, checks:CHECKS.map(c => ({key:c.key, score:s.st[c.key] === 'bad' ? 22 : s.st[c.key] === 'warn' ? 61 : BASE[c.key], status:s.st[c.key] || 'ok', value:s.st[c.key] ? (s.st[c.key] === 'bad' ? 'failed' : 'unsure') : '', guest:MSG[c.key]}))};
   }
   let upSeq = 0;
   function finishCheck(a){
@@ -933,10 +978,8 @@
     const id = 'u' + (++upSeq), f = flagged[0];
     const item = {id, memberId:m.id, name:m.name, age:m.role, product:m.product, order:'RR-41901' + upSeq, household:'Rivera · 3 members', by:'Alex Rivera', mins:0,
       photo:a.photo, sev:'warn',
-      flag: f ? CHECK_LABEL[f.key] + (f.value ? ' · ' + f.value : '') : 'Manual review',
-      note: f ? 'Unsure: ' + flagged.map(c => CHECK_LABEL[c.key].toLowerCase()).join(', ') + '.' : 'All checks passed. This product reviews every photo.',
-      checks:a.checks.map(c => [c.status, CHECK_LABEL[c.key], c.status === 'ok' ? '' : c.value]),
-      suggest:[...new Set(flagged.map(c => CHECK_REASON[c.key]))]};
+      issue: f ? {reason:CHECK_REASON[f.key], proof:PROOF[f.key]} : {label:'Manual review', proof:'All checks passed. This product reviews every photo'},
+      checks:CHECKS.map(cc => { const x = a.checks.find(y => y.key === cc.key); return x ? {key:cc.key, label:cc.label, status:x.status, score:x.score == null ? BASE[cc.key] : x.score} : {key:cc.key, label:cc.label, status:'ok', score:BASE[cc.key]}; })};
     S.queue.unshift(item); initItem(item); S.sel = 0;
   }
   async function runUpload(file){
@@ -1006,8 +1049,8 @@
           <div class="optrow"><div class="l">Reuse approved photos<small>For renewals and other memberships, up to 3 years</small></div><label class="switch"><input type="checkbox" id="o-reuse" ${S.opts.reuse ? 'checked' : ''} aria-label="Reuse approved photos"><span></span></label></div>
         </div>
         <div class="panel"><div class="sethead" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3>Denial reasons</h3><button class="btn sm" data-act="r-add">Add reason</button></div>
-          <div class="tablewrap"><table><thead><tr><th style="width:32%">Reason</th><th>Message to member</th><th></th></tr></thead><tbody>
-            ${REASONS.map(r => `<tr class="reasonrow"><td><input type="text" id="rl-${r.id}" value="${esc(r.label)}" aria-label="Reason"></td><td><input type="text" id="rg-${r.id}" value="${esc(r.guest)}" aria-label="Message to member"></td><td><button class="iconbtn" data-act="r-del" data-id="${r.id}" aria-label="Delete ${esc(r.label)}">${I.trash}</button></td></tr>`).join('')}
+          <div class="tablewrap"><table><thead><tr><th style="width:30%">Reason</th><th>Message to member</th><th class="num">Last 30 days</th><th></th></tr></thead><tbody>
+            ${REASONS.map(r => `<tr class="reasonrow"><td><input type="text" id="rl-${r.id}" value="${esc(r.label)}" aria-label="Reason"></td><td><input type="text" id="rg-${r.id}" value="${esc(r.guest)}" aria-label="Message to member"></td><td class="num faint" style="text-align:right">${r.uses || 0}</td><td><button class="iconbtn" data-act="r-del" data-id="${r.id}" aria-label="Delete ${esc(r.label)}">${I.trash}</button></td></tr>`).join('')}
           </tbody></table></div></div>
       </div>`;
   }
@@ -1037,6 +1080,7 @@
       case 'qtab': S.qtab = a.dataset.k; renderQueue(); break;
       case 'select': S.sel = +a.dataset.i; renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
       case 'skip': S.sel = (S.sel + 1) % S.queue.length; renderQueue(); break;
+      case 'allchecks': S.allChecks = !S.allChecks; renderQueue(); break;
       case 'crop': S.crop[q.id].orig = a.dataset.v === 'orig'; renderQueue(); break;
       case 'reason': { const s = S.reasons[q.id], r = a.dataset.r; s.has(r) ? s.delete(r) : s.add(r); renderQueue(); break; }
       case 'approve': decide('approve'); break;
@@ -1048,7 +1092,7 @@
         const fl = Object.keys(S.spot.flags).filter(k => S.spot.flags[k]).map(Number);
         fl.forEach(i => {
           const [n, p] = SPOT[i];
-          const item = {id:'sp' + i, name:n, age:'Adult', product:'Season Pass – Gold 2027', order:'RR-41861' + i, household:n.split(' ')[1] + ' · 1 member', by:n, mins:95, photo:p, sev:'warn', flag:'Flagged in spot check', note:'Auto-approved earlier today. The pass stays active until you decide.', checks:CHECKS.map(c => ok(c.label)), suggest:[]};
+          const item = {id:'sp' + i, name:n, age:'Adult', product:'Season Pass – Gold 2027', order:'RR-41861' + i, household:n.split(' ')[1] + ' · 1 member', by:n, mins:95, photo:p, sev:'warn', issue:{label:'Flagged in spot check', proof:'Auto-approved earlier today. The pass stays active until you decide'}, checks:sc()};
           S.queue.push(item); initItem(item); S.stats.auto--;
         });
         S.spot.done = true;
@@ -1076,7 +1120,7 @@
         break;
       }
       case 'g-nomatch': { const m = memberById(S.gate.sel); m.status = 'awaiting'; m.photo = null; renderGate(); renderPortal(); toast('Photo removed. Take a new one to admit.', 'warn'); break; }
-      case 'r-add': { const id = 'r' + Date.now(); REASONS.push({id, label:'New reason', guest:''}); renderSettings(); const el = $('#rl-' + id); if (el) { el.focus(); el.select(); } break; }
+      case 'r-add': { const id = 'r' + Date.now(); REASONS.push({id, label:'New reason', guest:'', uses:0}); renderSettings(); const el = $('#rl-' + id); if (el) { el.focus(); el.select(); } break; }
       case 'r-del': { const i = REASONS.findIndex(r => r.id === a.dataset.id); if (i > -1) { const [r] = REASONS.splice(i, 1); Object.values(S.reasons).forEach(s => s.delete(r.id)); renderSettings(); toast(`Deleted "${r.label}"`, 'ok', () => { REASONS.splice(i, 0, r); renderSettings(); }); } break; }
     }
   });
@@ -1112,6 +1156,7 @@
     if (k === 'z') { undo(); e.preventDefault(); return; }
     if (!q) return;
     if (k === 'a') decide('approve');
+    else if (k === 's') { if (S.queue.length > 1) { S.sel = (S.sel + 1) % S.queue.length; renderQueue(); } }
     else if (k === 'd') decide('deny');
     else if (k === 'j' || k === 'arrowdown') { S.sel = Math.min(S.queue.length - 1, S.sel + 1); renderQueue(); }
     else if (k === 'k' || k === 'arrowup') { S.sel = Math.max(0, S.sel - 1); renderQueue(); }
