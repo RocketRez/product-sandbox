@@ -126,6 +126,12 @@
 
   .detail{display:grid}
   .dtop{padding:18px 20px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--line)}
+  .pager{display:flex;align-items:center;gap:4px;font-size:12px}
+  .pager .faint{margin-right:6px}
+  .iconnav{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);display:inline-grid;place-items:center}
+  .iconnav:hover:not(:disabled){background:var(--sunken)}
+  .iconnav:disabled{opacity:.35;cursor:default}
+  .iconnav svg{width:16px;height:16px}
   .dtop .sub{color:var(--text-2);font-size:13px;margin-top:2px}
   .dmain{padding:20px;display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px}
   @media (max-width:640px){.dmain{grid-template-columns:minmax(0,1fr)}}
@@ -563,7 +569,7 @@
       <div class="pagehead">
         <div><h1>Photo review</h1><p class="num">Today · ${total} uploaded · ${S.stats.auto} auto-approved · ${S.stats.returned} returned to member</p></div>
         <div class="popwrap"><button class="btn ghost sm" data-act="keys" aria-expanded="${S.keysOpen}">${I.keys.replace('<svg', '<svg width="16" height="14"')} Shortcuts</button>
-          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve photo</span><span><kbd>A</kbd></span><span>Deny photo</span><span><kbd>D</kbd></span><span>Deny with another reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Edit message</span><span><kbd>E</kbd></span><span>Skip</span><span><kbd>S</kbd></span><span>Next / previous</span><span><kbd>J</kbd> <kbd>K</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
+          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve photo</span><span><kbd>A</kbd></span><span>Deny photo</span><span><kbd>D</kbd></span><span>Deny with another reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Edit message</span><span><kbd>E</kbd></span><span>Next / previous</span><span><kbd>→</kbd> <kbd>←</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
         </div>
       </div>
       <div class="subnav" role="tablist">${tabs.map(([k, l, c]) => `<button role="tab" data-act="qtab" data-k="${k}" aria-selected="${S.qtab === k}">${l} <span class="n">${c}</span></button>`).join('')}</div>
@@ -628,6 +634,10 @@
     return `<article class="panel detail" aria-label="${esc(q.name)}">
       <div class="dtop">
         <div style="min-width:0"><h2>${esc(q.name)}</h2><div class="sub">${esc(q.product)} · ${esc(q.age)}</div></div>
+        <div class="pager"><span class="faint num">${S.sel + 1} of ${S.queue.length}</span>
+          <button class="iconnav" data-act="prev" aria-label="Previous photo" title="Previous (←)" ${S.sel === 0 ? 'disabled' : ''}>${I.left}</button>
+          <button class="iconnav" data-act="next" aria-label="Next photo" title="Next (→)" ${S.sel >= S.queue.length - 1 ? 'disabled' : ''}>${I.left.replace('<svg', '<svg style="transform:scaleX(-1)"')}</button>
+        </div>
       </div>
       <div class="dmain">
         <div style="display:grid;gap:10px;align-content:start">${photos}${cropbar}</div>
@@ -638,9 +648,7 @@
         </div>
       </div>
       <div class="dfoot">
-        <span class="faint num" style="font-size:12px">${S.sel + 1} of ${S.queue.length}</span>
         <span class="sp"></span>
-        <button class="btn ghost" data-act="skip" ${S.queue.length < 2 ? 'disabled' : ''}>Skip <kbd>S</kbd></button>
         <button class="btn deny" data-act="deny" id="denybtn">Deny Photo <kbd>D</kbd></button>
         <button class="btn approve" data-act="approve">Approve Photo <kbd>A</kbd></button>
       </div>
@@ -708,6 +716,12 @@
       if (!v || v === def) delete S.msg[q.id]; else S.msg[q.id] = v;
     }
     S.editing = null;
+  }
+  function go(d){
+    const n = Math.max(0, Math.min(S.queue.length - 1, S.sel + d));
+    if (n === S.sel) return;
+    if (S.editing) S.editing = null;
+    S.sel = n; renderQueue();
   }
   function undo(){
     const d = S.done.pop(); if (!d) return;
@@ -1104,7 +1118,7 @@
       case 'keys': S.keysOpen = !S.keysOpen; renderQueue(); break;
       case 'qtab': S.qtab = a.dataset.k; renderQueue(); break;
       case 'select': S.editing = null; S.sel = +a.dataset.i; renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
-      case 'skip': S.sel = (S.sel + 1) % S.queue.length; renderQueue(); break;
+      case 'prev': case 'next': go(act === 'next' ? 1 : -1); break;
       case 'allchecks': S.allChecks = !S.allChecks; renderQueue(); break;
       case 'crop': S.crop[q.id].orig = a.dataset.v === 'orig'; renderQueue(); break;
       case 'deny-with': decide('deny', a.dataset.r); break;
@@ -1191,10 +1205,9 @@
     if (!q) return;
     if (k === 'a') decide('approve');
     else if (k === 'e' && suggested(q)) { S.editing = q.id; renderQueue(); const t = $('#msg-input'); if (t) t.focus(); }
-    else if (k === 's') { if (S.queue.length > 1) { S.sel = (S.sel + 1) % S.queue.length; renderQueue(); } }
     else if (k === 'd') decide('deny');
-    else if (k === 'j' || k === 'arrowdown') { S.sel = Math.min(S.queue.length - 1, S.sel + 1); renderQueue(); }
-    else if (k === 'k' || k === 'arrowup') { S.sel = Math.max(0, S.sel - 1); renderQueue(); }
+    else if (k === 'arrowright') go(1);
+    else if (k === 'arrowleft') go(-1);
     else if (/^[1-9]$/.test(k) && REASONS[+k - 1]) decide('deny', REASONS[+k - 1].id);
     else return;
     e.preventDefault();
