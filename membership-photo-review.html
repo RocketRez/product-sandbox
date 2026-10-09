@@ -163,26 +163,31 @@
   .chip[aria-pressed="true"]{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
   .chip[aria-pressed="true"] kbd{background:var(--bad);color:var(--panel)}
   .chips.need .chip{border-color:var(--bad)}
-  .preview{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--sunken);display:grid;gap:2px}
-  .preview .faint{font-size:12px}
   .issue{border-radius:10px;border:1px solid color-mix(in srgb,var(--warn) 30%,var(--line));background:var(--warn-soft);padding:14px;display:grid;gap:10px}
   .issue.bad{border-color:color-mix(in srgb,var(--bad) 30%,var(--line));background:var(--bad-soft)}
   .issue .eyebrow{font-size:12px;font-weight:600;color:var(--warn)}
+  .issue .field{display:grid;gap:4px}
+  .issue .lbl{font-size:12px;font-weight:500;color:var(--text-2);display:flex;align-items:center;gap:8px}
+  .issue .edited{font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:0 6px}
+  .acc{border-top:1px solid color-mix(in srgb,var(--warn) 22%,var(--line));padding-top:10px;display:grid;gap:10px}
+  .issue.bad .acc{border-top-color:color-mix(in srgb,var(--bad) 22%,var(--line))}
+  .acc-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;font-size:13px;font-weight:500;color:var(--text);justify-self:start}
+  .acc .checks{font-size:13px}
+  .msg{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:10px 12px;border-radius:8px;border:1px dashed var(--line-strong);background:var(--panel);font-size:14px;color:var(--text)}
+  .msg:hover{border-style:solid;border-color:var(--accent)}
+  .msg svg{width:14px;height:14px;flex:none;margin-top:3px;margin-left:auto;color:var(--text-3)}
+  .msg:hover svg{color:var(--accent)}
+  #msg-input{width:100%;resize:vertical;min-height:64px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--accent);background:var(--panel);font:inherit;font-size:14px;color:var(--text);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+  .msgbar{display:flex;align-items:center;gap:8px;font-size:12px}
+  .msgbar .sp{flex:1}
+  .deny-chip{border:1px solid var(--bad);color:var(--text)}
+  .deny-chip:hover{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+  .deny-chip kbd{background:var(--bad-soft);color:var(--bad)}
   .issue.bad .eyebrow{color:var(--bad)}
   .issue-title{font-size:17px;font-weight:600;letter-spacing:-.01em}
-  .issue-reason{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--panel);text-align:left;font-size:17px;font-weight:600;letter-spacing:-.01em;transition:border-color .12s,box-shadow .12s}
-  .issue-reason:hover{border-color:var(--text-3)}
-  .issue-reason .box{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line-strong);display:grid;place-items:center;color:transparent;flex:none}
-  .issue-reason .box svg{width:12px;height:12px}
-  .issue-reason[aria-pressed="true"]{border-color:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 14%,transparent)}
-  .issue-reason[aria-pressed="true"] .box{background:var(--bad);border-color:var(--bad);color:var(--panel)}
-  .issue-reason .t{flex:1;min-width:0}
-  .issue-reason kbd{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-3);border:1px solid var(--line-strong);border-radius:4px;padding:0 5px;line-height:18px}
-  .issue.need .issue-reason{border-color:var(--bad)}
   .proof{display:flex;gap:10px;align-items:flex-start;font-size:14px}
   .proof > svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--warn)}
   .issue.bad .proof > svg{color:var(--bad)}
-  .proof .checks{font-size:12px;gap:5px}
   .detail .checks li{grid-template-columns:18px minmax(0,1fr) 64px 36px}
   .detail .checks .v{text-align:right}
   .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--text-3) 22%,transparent);overflow:hidden}
@@ -494,7 +499,7 @@
   const S = {
     view:'queue', qtab:'review', sel:0, keysOpen:false, allChecks:false,
     queue: QUEUE.map(q => ({...q})), done: [],
-    reasons:{}, crop:{}, shownAt: performance.now(),
+    msg:{}, editing:null, crop:{}, shownAt: performance.now(),
     spot:{flags:{}, done:false},
     stats:{auto:117, returned:19},
     members:[
@@ -519,7 +524,7 @@
     opts:{spot:5, autocrop:true, reuse:true}
   };
   S.queue.forEach(q => initItem(q));
-  function initItem(q){ S.reasons[q.id] = new Set(q.issue.reason && reasonById(q.issue.reason) ? [q.issue.reason] : []); S.crop[q.id] = {orig:false, zoom:q.zoom || 1}; }
+  function initItem(q){ S.crop[q.id] = {orig:false, zoom:q.zoom || 1}; }
   const allMembers = () => [...S.members, ...S.extras];
   const memberById = id => allMembers().find(m => m.id === id);
 
@@ -556,7 +561,7 @@
       <div class="pagehead">
         <div><h1>Photo review</h1><p class="num">Today · ${total} uploaded · ${S.stats.auto} auto-approved · ${S.stats.returned} returned to member</p></div>
         <div class="popwrap"><button class="btn ghost sm" data-act="keys" aria-expanded="${S.keysOpen}">${I.keys.replace('<svg', '<svg width="16" height="14"')} Shortcuts</button>
-          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve</span><span><kbd>A</kbd></span><span>Deny</span><span><kbd>D</kbd></span><span>Toggle reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Skip</span><span><kbd>S</kbd></span><span>Next / previous</span><span><kbd>J</kbd> <kbd>K</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
+          ${S.keysOpen ? `<div class="pop" role="dialog" aria-label="Keyboard shortcuts"><span>Approve photo</span><span><kbd>A</kbd></span><span>Deny photo</span><span><kbd>D</kbd></span><span>Deny with another reason</span><span><kbd>1</kbd>–<kbd>${Math.min(9, REASONS.length)}</kbd></span><span>Edit message</span><span><kbd>E</kbd></span><span>Skip</span><span><kbd>S</kbd></span><span>Next / previous</span><span><kbd>J</kbd> <kbd>K</kbd></span><span>Undo</span><span><kbd>Z</kbd></span></div>` : ''}
         </div>
       </div>
       <div class="subnav" role="tablist">${tabs.map(([k, l, c]) => `<button role="tab" data-act="qtab" data-k="${k}" aria-selected="${S.qtab === k}">${l} <span class="n">${c}</span></button>`).join('')}</div>
@@ -580,8 +585,11 @@
   const keyOf = id => { const i = REASONS.findIndex(r => r.id === id); return i > -1 && i < 9 ? i + 1 : ''; };
   const scoreRow = x => `<li><span class="ic ${x.status}">${STATUS_IC[x.status]}</span><span>${esc(x.label)}</span><span class="bar ${x.status}" aria-hidden="true"><i style="width:${x.score}%"></i></span><span class="v">${x.score}%</span></li>`;
 
+  const suggested = q => q.issue.reason && reasonById(q.issue.reason);
+  const guestMessage = (q, r) => (r && suggested(q) === r && S.msg[q.id] != null) ? S.msg[q.id] : (r ? r.guest : '');
+
   function renderDetail(q){
-    const c = S.crop[q.id], sel = S.reasons[q.id];
+    const c = S.crop[q.id];
     const showOrig = c.orig;
     const frame = (p, cap, main) => {
       const src = main && showOrig && p && p.orig ? {img:p.orig} : p;
@@ -592,21 +600,29 @@
     const canOrig = (q.photo.img && q.photo.orig) || (q.zoom || 1) > 1;
     const cropbar = !canOrig ? '' : `<div class="cropbar"><span class="seg"><button data-act="crop" data-v="auto" aria-pressed="${!showOrig}">Cropped</button><button data-act="crop" data-v="orig" aria-pressed="${showOrig}">Original</button></span>${showOrig ? '' : `<input type="range" id="zoom" min="1" max="2.4" step="0.05" value="${c.zoom}" aria-label="Zoom">`}</div>`;
 
-    const sug = q.issue.reason && reasonById(q.issue.reason);
-    const flagged = q.checks.filter(x => x.status !== 'ok');
-    const proof = `<div class="proof">${I.alert}<div style="display:grid;gap:8px;min-width:0"><span>${esc(q.issue.proof)}</span>${flagged.length ? `<ul class="checks">${flagged.map(scoreRow).join('')}</ul>` : ''}</div></div>`;
-    const hero = sug
-      ? `<div class="issue ${q.sev}" id="hero">
-          <span class="eyebrow">Suggested reason for denial</span>
-          <button class="issue-reason" data-act="reason" data-r="${sug.id}" aria-pressed="${sel.has(sug.id)}"><span class="box">${I.check}</span><span class="t">${esc(sug.label)}</span>${keyOf(sug.id) ? `<kbd>${keyOf(sug.id)}</kbd>` : ''}</button>
-          ${proof}
-        </div>`
-      : `<div class="issue ${q.sev}" id="hero"><span class="eyebrow">Needs review</span><div class="issue-title">${esc(issueLabel(q))}</div>${proof}</div>`;
-    const others = REASONS.filter(r => !sug || r.id !== sug.id);
-    const chips = others.map(r => `<button class="chip" data-act="reason" data-r="${r.id}" aria-pressed="${sel.has(r.id)}">${keyOf(r.id) ? `<kbd>${keyOf(r.id)}</kbd>` : ''}${esc(r.label)}</button>`).join('');
-    const chosen = REASONS.filter(r => sel.has(r.id));
-    const preview = chosen.length ? `<div class="preview"><span class="faint">Member will see</span><span>${chosen.map(r => esc(r.guest)).join(' ')}</span></div>` : '';
-    const all = S.allChecks ? `<ul class="checks" style="margin-top:4px">${q.checks.map(scoreRow).join('')}</ul>` : '';
+    const sug = suggested(q);
+    const accordion = `<div class="acc">
+        <button class="acc-btn" data-act="allchecks" aria-expanded="${S.allChecks}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${S.allChecks ? 90 : 0}deg);transition:transform .15s"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Facial Measurement Accuracy</button>
+        ${S.allChecks ? `<ul class="checks">${q.checks.map(scoreRow).join('')}</ul>` : ''}
+      </div>`;
+    let message = '';
+    if (sug) {
+      const text = guestMessage(q, sug), edited = S.msg[q.id] != null;
+      message = S.editing === q.id
+        ? `<div class="field"><label class="lbl" for="msg-input">Message sent to guest</label>
+            <textarea id="msg-input" rows="3">${esc(text)}</textarea>
+            <div class="msgbar"><span class="faint">Enter to save · Esc to cancel</span><span class="sp"></span><button class="btn ghost sm" data-act="msg-cancel">Cancel</button><button class="btn primary sm" data-act="msg-save">Save</button></div></div>`
+        : `<div class="field"><span class="lbl">Message sent to guest${edited ? ' <span class="edited">Edited</span>' : ''}</span>
+            <button class="msg" data-act="msg-edit" title="Click to edit">${esc(text)}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5l3 3L6 13H3v-3z"/></svg></button></div>`;
+    }
+    const hero = `<div class="issue ${q.sev}" id="hero">
+        <div class="field"><span class="eyebrow">${sug ? 'Denial reason' : 'Needs review'}</span><div class="issue-title">${esc(issueLabel(q))}</div></div>
+        <div class="field"><span class="lbl">${sug ? 'Denial evidence' : 'Details'}</span><div class="proof">${I.alert}<span>${esc(q.issue.proof)}</span></div></div>
+        ${accordion}
+        ${message}
+      </div>`;
+    const others = REASONS.filter(r => r !== sug);
+    const chips = others.map(r => `<button class="chip deny-chip" data-act="deny-with" data-r="${r.id}" title="Deny photo: ${esc(r.label)}">${keyOf(r.id) ? `<kbd>${keyOf(r.id)}</kbd>` : ''}${esc(r.label)}</button>`).join('');
     return `<article class="panel detail" aria-label="${esc(q.name)}">
       <div class="dtop">
         <div style="min-width:0"><h2>${esc(q.name)}</h2><div class="sub">${esc(q.product)} · ${esc(q.age)}</div></div>
@@ -614,12 +630,8 @@
       <div class="dmain">
         <div style="display:grid;gap:10px;align-content:start">${photos}${cropbar}</div>
         <div style="display:grid;gap:18px;align-content:start;min-width:0">
-          <div style="display:grid;gap:10px">${hero}${preview}</div>
-          <div class="sect"><span class="sectlabel">${sug ? 'Other reasons' : 'Reason for denial'}</span><div class="chips" id="chips">${chips}</div></div>
-          <div class="sect">
-            <button class="linkbtn" data-act="allchecks" aria-expanded="${S.allChecks}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${S.allChecks ? 90 : 0}deg);transition:transform .15s"><path d="M6 3.5L10.5 8 6 12.5"/></svg>${flagged.length ? `All ${q.checks.length} checks · ${flagged.length} flagged` : `All ${q.checks.length} checks passed`}</button>
-            ${all}
-          </div>
+          ${hero}
+          <div class="sect"><span class="sectlabel">${sug ? 'Incorrect suggestion? Click to update and deny' : 'Click a reason to deny'}</span><div class="chips" id="chips">${chips}</div></div>
           <dl class="kv"><dt>Order</dt><dd class="mono">${q.order}</dd><dt>Household</dt><dd>${esc(q.household)}</dd><dt>Uploaded by</dt><dd>${esc(q.by)}</dd><dt>Uploaded</dt><dd>${q.mins < 1 ? 'Just now' : q.mins < 60 ? q.mins + ' min ago' : ago(q.mins) + ' ago'}</dd></dl>
         </div>
       </div>
@@ -627,8 +639,8 @@
         <span class="faint num" style="font-size:12px">${S.sel + 1} of ${S.queue.length}</span>
         <span class="sp"></span>
         <button class="btn ghost" data-act="skip" ${S.queue.length < 2 ? 'disabled' : ''}>Skip <kbd>S</kbd></button>
-        <button class="btn deny" data-act="deny" id="denybtn">Deny${chosen.length ? '' : '…'} <kbd>D</kbd></button>
-        <button class="btn approve" data-act="approve">Approve <kbd>A</kbd></button>
+        <button class="btn deny" data-act="deny" id="denybtn">Deny Photo <kbd>D</kbd></button>
+        <button class="btn approve" data-act="approve">Approve Photo <kbd>A</kbd></button>
       </div>
     </article>`;
   }
@@ -656,33 +668,43 @@
     </tbody></table></div>`;
   }
 
-  function setMemberFromDecision(item, kind, reasons){
+  function setMemberFromDecision(item, kind, reasons, message){
     const m = item.memberId ? memberById(item.memberId) : allMembers().find(x => x.queueId === item.id);
     if (!m) return;
-    if (kind === 'approve') { m.status = 'approved'; delete m.reasons; }
-    else if (kind === 'deny') { m.status = 'denied'; m.reasons = reasons; }
-    else { m.status = 'review'; delete m.reasons; }
+    if (kind === 'approve') { m.status = 'approved'; delete m.reasons; delete m.message; }
+    else if (kind === 'deny') { m.status = 'denied'; m.reasons = reasons; m.message = message; }
+    else { m.status = 'review'; delete m.reasons; delete m.message; }
   }
-  function decide(kind){
+  function decide(kind, reasonId){
     const q = S.queue[S.sel]; if (!q) return;
-    const reasons = REASONS.filter(r => S.reasons[q.id].has(r.id)).map(r => r.id);
-    if (kind === 'deny' && !reasons.length) {
-      ['#chips', '#hero'].forEach(sel => { const el = $(sel); if (el) { el.classList.add('need'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } });
-      toast('Choose a reason to deny', 'warn');
+    if (S.editing === q.id) saveMessage();
+    const r = kind === 'deny' ? (reasonId ? reasonById(reasonId) : suggested(q)) : null;
+    if (kind === 'deny' && !r) {
+      const el = $('#chips'); if (el) { el.classList.add('need'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+      toast('Choose a denial reason', 'warn');
       return;
     }
+    const message = r ? guestMessage(q, r) : '';
     const idx = S.sel;
     const row = document.querySelectorAll('.qrow')[idx];
     const commit = () => {
       S.queue.splice(idx, 1);
-      S.done.push({item:q, kind, reasons: kind === 'deny' ? reasons : [], idx});
-      setMemberFromDecision(q, kind, reasons);
+      S.done.push({item:q, kind, reasons: r ? [r.id] : [], message, idx});
+      setMemberFromDecision(q, kind, r ? [r.id] : [], message);
       S.shownAt = performance.now();
       renderQueue(); renderPortal(); renderGate();
-      toast(kind === 'approve' ? `${q.name} approved` : `${q.name} denied · member notified`, kind === 'approve' ? 'ok' : 'bad', undo);
+      toast(kind === 'approve' ? `Photo approved · ${q.name}` : `Photo denied · ${r.label} · guest notified`, kind === 'approve' ? 'ok' : 'bad', undo);
     };
     if (row && !matchMedia('(prefers-reduced-motion: reduce)').matches) { row.classList.add('leave'); setTimeout(commit, 180); }
     else commit();
+  }
+  function saveMessage(){
+    const t = $('#msg-input'), q = S.queue.find(x => x.id === S.editing);
+    if (t && q) {
+      const v = t.value.trim(), def = suggested(q).guest;
+      if (!v || v === def) delete S.msg[q.id]; else S.msg[q.id] = v;
+    }
+    S.editing = null;
   }
   function undo(){
     const d = S.done.pop(); if (!d) return;
@@ -888,7 +910,7 @@
     approved:['ok', 'Active'], provisional:['ok', 'Active'],
     awaiting:['idle', 'Photo needed'], denied:['bad', 'Retake needed'], review:['info', 'In review']
   };
-  const reasonText = m => (m.reasons || []).map(id => (reasonById(id) || {}).guest).filter(Boolean).join(' ');
+  const reasonText = m => m.message || (m.reasons || []).map(id => (reasonById(id) || {}).guest).filter(Boolean).join(' ');
 
   function renderPortal(){
     const P = S.portal;
@@ -1078,11 +1100,14 @@
     switch (act) {
       case 'keys': S.keysOpen = !S.keysOpen; renderQueue(); break;
       case 'qtab': S.qtab = a.dataset.k; renderQueue(); break;
-      case 'select': S.sel = +a.dataset.i; renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
+      case 'select': S.editing = null; S.sel = +a.dataset.i; renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
       case 'skip': S.sel = (S.sel + 1) % S.queue.length; renderQueue(); break;
       case 'allchecks': S.allChecks = !S.allChecks; renderQueue(); break;
       case 'crop': S.crop[q.id].orig = a.dataset.v === 'orig'; renderQueue(); break;
-      case 'reason': { const s = S.reasons[q.id], r = a.dataset.r; s.has(r) ? s.delete(r) : s.add(r); renderQueue(); break; }
+      case 'deny-with': decide('deny', a.dataset.r); break;
+      case 'msg-edit': S.editing = q.id; renderQueue(); { const t = $('#msg-input'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } } break;
+      case 'msg-save': saveMessage(); renderQueue(); toast('Message updated', 'ok'); break;
+      case 'msg-cancel': S.editing = null; renderQueue(); break;
       case 'approve': decide('approve'); break;
       case 'deny': decide('deny'); break;
       case 'reopen': { const d = S.done.splice(+a.dataset.i, 1)[0]; reopenItem(d); toast(`${d.item.name} is back in review`, 'ok'); break; }
@@ -1121,7 +1146,7 @@
       }
       case 'g-nomatch': { const m = memberById(S.gate.sel); m.status = 'awaiting'; m.photo = null; renderGate(); renderPortal(); toast('Photo removed. Take a new one to admit.', 'warn'); break; }
       case 'r-add': { const id = 'r' + Date.now(); REASONS.push({id, label:'New reason', guest:'', uses:0}); renderSettings(); const el = $('#rl-' + id); if (el) { el.focus(); el.select(); } break; }
-      case 'r-del': { const i = REASONS.findIndex(r => r.id === a.dataset.id); if (i > -1) { const [r] = REASONS.splice(i, 1); Object.values(S.reasons).forEach(s => s.delete(r.id)); renderSettings(); toast(`Deleted "${r.label}"`, 'ok', () => { REASONS.splice(i, 0, r); renderSettings(); }); } break; }
+      case 'r-del': { const i = REASONS.findIndex(r => r.id === a.dataset.id); if (i > -1) { const [r] = REASONS.splice(i, 1); renderSettings(); toast(`Deleted "${r.label}"`, 'ok', () => { REASONS.splice(i, 0, r); renderSettings(); }); } break; }
     }
   });
 
@@ -1147,6 +1172,11 @@
   });
 
   document.addEventListener('keydown', e => {
+    if (e.target.id === 'msg-input') {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveMessage(); renderQueue(); toast('Message updated', 'ok'); }
+      else if (e.key === 'Escape') { S.editing = null; renderQueue(); }
+      return;
+    }
     if (e.key === 'Escape' && S.keysOpen) { S.keysOpen = false; renderQueue(); return; }
     if (S.view !== 'queue' || e.target.closest('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
@@ -1156,11 +1186,12 @@
     if (k === 'z') { undo(); e.preventDefault(); return; }
     if (!q) return;
     if (k === 'a') decide('approve');
+    else if (k === 'e' && suggested(q)) { S.editing = q.id; renderQueue(); const t = $('#msg-input'); if (t) t.focus(); }
     else if (k === 's') { if (S.queue.length > 1) { S.sel = (S.sel + 1) % S.queue.length; renderQueue(); } }
     else if (k === 'd') decide('deny');
     else if (k === 'j' || k === 'arrowdown') { S.sel = Math.min(S.queue.length - 1, S.sel + 1); renderQueue(); }
     else if (k === 'k' || k === 'arrowup') { S.sel = Math.max(0, S.sel - 1); renderQueue(); }
-    else if (/^[1-9]$/.test(k) && REASONS[+k - 1]) { const r = REASONS[+k - 1].id, s = S.reasons[q.id]; s.has(r) ? s.delete(r) : s.add(r); renderQueue(); }
+    else if (/^[1-9]$/.test(k) && REASONS[+k - 1]) decide('deny', REASONS[+k - 1].id);
     else return;
     e.preventDefault();
   });
