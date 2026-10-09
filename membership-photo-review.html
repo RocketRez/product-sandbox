@@ -191,7 +191,7 @@
   .deny-chip kbd{background:var(--bad-soft);color:var(--bad)}
   .issue.bad .eyebrow{color:var(--bad)}
   .issue-title{font-size:17px;font-weight:600;letter-spacing:-.01em}
-  .proof{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+  .proof{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--text-2);margin-top:2px}
   .proof > svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--warn)}
   .issue.bad .proof > svg{color:var(--bad)}
   .detail .checks li{grid-template-columns:18px minmax(0,1fr) 64px 36px}
@@ -326,6 +326,17 @@
   .iconbtn:hover{background:var(--bad-soft);color:var(--bad)}
   .iconbtn svg{width:16px;height:16px}
 
+  .meter{display:inline-flex;align-items:center;gap:8px}
+  .meter .bar{width:64px}
+  .rec{display:grid;gap:2px;justify-items:start;font-size:12px}
+  .evlog{list-style:none;margin:0;padding:0}
+  .evlog li{border-top:1px solid var(--line)}
+  .evlog summary{display:flex;gap:12px;align-items:center;padding:10px 20px;cursor:pointer;font-size:13px;list-style:none}
+  .evlog summary::-webkit-details-marker{display:none}
+  .evlog summary:hover{background:var(--sunken)}
+  .evname{font-family:var(--mono);font-size:12px;font-weight:500}
+  .evsum{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .evlog pre{margin:0;padding:12px 20px 16px;font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--text-2);background:var(--sunken);overflow-x:auto}
   #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;background:var(--text);color:var(--panel);border-radius:10px;padding:10px 10px 10px 14px;display:flex;gap:12px;align-items:center;font-size:13px;z-index:60;max-width:calc(100vw - 32px);box-shadow:var(--pop)}
   #toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
   #toast .ic{background:color-mix(in srgb,var(--panel) 18%,transparent);color:var(--panel)}
@@ -343,6 +354,7 @@
       <button role="tab" data-view="portal" aria-selected="false">Member portal</button>
       <button role="tab" data-view="gate" aria-selected="false">Gate</button>
       <button role="tab" data-view="settings" aria-selected="false">Settings</button>
+      <button role="tab" data-view="insights" aria-selected="false">Insights</button>
     </nav>
     <span class="venue">Lagoon</span>
   </div>
@@ -353,6 +365,7 @@
   <section class="view" id="v-portal" hidden></section>
   <section class="view" id="v-gate" hidden></section>
   <section class="view" id="v-settings" hidden></section>
+  <section class="view" id="v-insights" hidden></section>
 </main>
 
 <div id="toast" role="status" aria-live="polite"><span class="ic" id="toastic"></span><span id="toastmsg"></span><button id="toastbtn" hidden>Undo</button></div>
@@ -507,7 +520,7 @@
     queue: QUEUE.map(q => ({...q})), done: [],
     msg:{}, editing:null, crop:{}, shownAt: performance.now(),
     spot:{flags:{}, done:false},
-    stats:{auto:117, returned:19},
+    stats:{auto:117, returned:19}, events:[], tenant:'lagoon',
     members:[
       {id:'g1', name:'Alex Rivera', role:'Adult', product:'Season Pass – Gold 2027', status:'approved', photo:{skin:'#C68642', hair:'#2B1A10', bg:'#DCE7F3', shirt:'#1D3557'}},
       {id:'g2', name:'Jamie Rivera', role:'Adult', product:'Season Pass – Gold 2027', status:'awaiting', photo:null},
@@ -624,8 +637,7 @@
             <button class="msg" data-act="msg-edit" title="Click to edit">${esc(text)}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5l3 3L6 13H3v-3z"/></svg></button></div>`;
     }
     const hero = `<div class="issue ${q.sev}" id="hero">
-        <div class="field"><span class="eyebrow">${sug ? 'Denial reason' : 'Needs review'}</span><div class="issue-title">${esc(issueLabel(q))}</div></div>
-        <div class="field"><span class="lbl">${sug ? 'Denial evidence' : 'Details'}</span><div class="proof">${I.alert}<span>${esc(q.issue.proof)}</span></div></div>
+        <div class="field"><span class="eyebrow">${sug ? 'Denial reason' : 'Needs review'}</span><div class="issue-title">${esc(issueLabel(q))}</div><div class="proof">${I.alert}<span>${esc(q.issue.proof)}</span></div></div>
         ${accordion}
         ${message}
       </div>`;
@@ -700,7 +712,15 @@
     const row = document.querySelectorAll('.qrow')[idx];
     const commit = () => {
       S.queue.splice(idx, 1);
-      S.done.push({item:q, kind, reasons: r ? [r.id] : [], message, idx});
+      const sug = suggested(q), finalId = r ? r.id : null;
+      const edited = !!(r && r === sug && S.msg[q.id] != null);
+      const suggestion = !sug ? 'none' : kind === 'approve' ? 'rejected' : finalId === sug.id ? 'accepted' : 'overridden';
+      track('review_decision', {photo_id:q.photoId || q.id, product:q.product, reviewer_id:REVIEWER_ID, source:q.fromSpot ? 'spot_check' : 'review_queue',
+        decision:kind, suggested_reason:sug ? sug.id : null, final_reason:finalId, suggestion, message_edited:edited,
+        message_template:r ? r.id : null, flagged_checks:q.checks.filter(x => x.status !== 'ok').map(x => ({check:x.key, score:x.score})),
+        time_to_decision_ms:Math.round(performance.now() - S.shownAt), rules_version:RULES_VERSION});
+      const statChanges = applyDecisionStats(q, kind, sug, finalId, edited);
+      S.done.push({item:q, kind, reasons: r ? [r.id] : [], message, idx, statChanges});
       setMemberFromDecision(q, kind, r ? [r.id] : [], message);
       S.shownAt = performance.now();
       renderQueue(); renderPortal(); renderGate();
@@ -721,7 +741,7 @@
     const n = Math.max(0, Math.min(S.queue.length - 1, S.sel + d));
     if (n === S.sel) return;
     if (S.editing) S.editing = null;
-    S.sel = n; renderQueue();
+    S.sel = n; S.shownAt = performance.now(); renderQueue();
   }
   function undo(){
     const d = S.done.pop(); if (!d) return;
@@ -733,6 +753,8 @@
     S.sel = Math.min(d.idx, S.queue.length - 1);
     S.qtab = 'review';
     setMemberFromDecision(d.item, 'reopen');
+    reverseStats(d.statChanges);
+    track('review_reopened', {photo_id:d.item.photoId || d.item.id, reviewer_id:REVIEWER_ID, previous_decision:d.kind, previous_reason:d.reasons[0] || null});
     renderQueue(); renderPortal(); renderGate();
   }
 
@@ -910,6 +932,64 @@
   window.__photoChecks = {analyzePhoto, loadFace, T};
 
 
+  /* ---------- instrumentation ---------- */
+  const RULES_VERSION = '2026-10-09', MODEL_VERSION = 'face-api@1.7.15 ssd_mobilenetv1+landmark68';
+  const REVIEWER_ID = 'staff_042';
+  let evSeq = 0;
+  function track(event, props){
+    S.events.unshift({event, event_id:'ev_' + (++evSeq), ts:new Date().toISOString(), tenant_id:'lagoon', ...props});
+    if (S.events.length > 200) S.events.length = 200;
+    if (S.view === 'insights') renderInsights();
+  }
+  const newPhotoId = () => 'ph_' + Date.now().toString(36) + (++evSeq);
+
+  // 30-day aggregates per tenant, built from review_decision, photo_checked and spot_check events.
+  const DEFAULT_THRESHOLD = 70, MIN_SAMPLE = 50;
+  const seedChecks = (f) => ({
+    face:{flagged:10, agreed:10, misses:0}, one:{flagged:25, agreed:24, misses:0}, size:{flagged:80, agreed:30, misses:0}, pose:{flagged:60, agreed:33, misses:0},
+    light:{flagged:160, agreed:128, misses:0}, sharp:{flagged:120, agreed:66, misses:1}, eyes:{flagged:210, agreed:168, misses:3}, hat:{flagged:190, agreed:57, misses:0}
+  });
+  const seedSugg = () => ({
+    dark:{suggested:180, accepted:150, changed:{blur:18}, approved:12, edited:6},
+    blur:{suggested:140, accepted:96, changed:{dark:20, frame:10}, approved:14, edited:9},
+    hat:{suggested:190, accepted:57, changed:{}, approved:133, edited:31},
+    glasses:{suggested:210, accepted:160, changed:{dark:22}, approved:28, edited:61},
+    frame:{suggested:95, accepted:40, changed:{blur:25}, approved:30, edited:4},
+    group:{suggested:25, accepted:24, changed:{}, approved:1, edited:0},
+    person:{suggested:6, accepted:5, changed:{}, approved:1, edited:0}
+  });
+  const scale = (o, f) => JSON.parse(JSON.stringify(o), (k, v) => typeof v === 'number' ? Math.round(v * f) : v);
+  const defaultChecks = () => JSON.parse(JSON.stringify(S.checks));
+  const TENANTS = {
+    lagoon:{name:'Lagoon', checks:S.checks, thresholds:{}, applied:{}, spotSampled:150, decisions:1120, checksStats:seedChecks(), sugg:seedSugg()},
+    wwap:{name:'Wild Water Adventure Park', checks:defaultChecks(), thresholds:{}, applied:{}, spotSampled:90, decisions:410,
+      checksStats:Object.assign(scale(seedChecks(), .4), {hat:{flagged:70, agreed:52, misses:0}, light:{flagged:40, agreed:13, misses:0}}),
+      sugg:Object.assign(scale(seedSugg(), .4), {hat:{suggested:70, accepted:52, changed:{}, approved:18, edited:3}, dark:{suggested:40, accepted:13, changed:{blur:4}, approved:23, edited:2}})},
+    gilroy:{name:'Gilroy Gardens', checks:defaultChecks(), thresholds:{}, applied:{}, spotSampled:60, decisions:150, checksStats:scale(seedChecks(), .15), sugg:scale(seedSugg(), .15)}
+  };
+  const T0 = TENANTS.lagoon;
+
+  // Record a staff decision against Lagoon's aggregates; returns the changes so undo can reverse them.
+  function applyDecisionStats(q, kind, sug, finalId, edited){
+    const ch = [], bump = (obj, key) => { obj[key] = (obj[key] || 0) + 1; ch.push([obj, key]); };
+    if (sug) {
+      const g = T0.sugg[sug.id] || (T0.sugg[sug.id] = {suggested:0, accepted:0, changed:{}, approved:0, edited:0});
+      bump(g, 'suggested');
+      if (kind === 'approve') bump(g, 'approved');
+      else if (finalId === sug.id) bump(g, 'accepted');
+      else bump(g.changed, finalId);
+      if (edited) bump(g, 'edited');
+    }
+    q.checks.filter(x => x.status !== 'ok').forEach(x => {
+      const c = T0.checksStats[x.key]; bump(c, 'flagged');
+      if (kind === 'deny' && finalId === CHECK_REASON[x.key]) bump(c, 'agreed');
+    });
+    if (q.fromSpot && kind === 'deny') Object.keys(CHECK_REASON).filter(k => CHECK_REASON[k] === finalId).forEach(k => bump(T0.checksStats[k], 'misses'));
+    bump(T0, 'decisions');
+    return ch;
+  }
+  const reverseStats = ch => (ch || []).forEach(([obj, key]) => { obj[key]--; });
+
   /* ---------- outcome rules ---------- */
   function outcome(analysis, product){
     const ps = S.products[product];
@@ -997,6 +1077,14 @@
       P.step++;
       if (P.step >= a.checks.length) {
         P.result = o;
+        const photoId = newPhotoId();
+        a.photoId = photoId;
+        const sugKey = o.check ? o.check.key : (o.flagged && o.flagged[0] ? o.flagged[0].key : null);
+        track('photo_checked', {photo_id:photoId, member_id:m.id, product:m.product, source:'member_portal', input:a.photo && a.photo.img ? 'upload' : 'sample',
+          approval_mode:S.products[m.product].mode, model_version:MODEL_VERSION, rules_version:RULES_VERSION,
+          checks:a.checks.map(c => ({check:c.key, score:c.score, status:c.status, threshold:T0.thresholds[c.key] || DEFAULT_THRESHOLD})),
+          outcome:o.result === 'approved' ? 'auto_approved' : o.result === 'retake' ? 'returned_to_guest' : o.result === 'review' ? 'sent_to_review' : 'verify_at_gate',
+          suggested_reason:sugKey ? CHECK_REASON[sugKey] : null});
         if (o.result === 'retake') S.stats.returned++;
         else {
           m.photo = a.photo; delete m.reasons;
@@ -1015,7 +1103,7 @@
   }
   function queueFromPortal(m, a, flagged){
     const id = 'u' + (++upSeq), f = flagged[0];
-    const item = {id, memberId:m.id, name:m.name, age:m.role, product:m.product, order:'RR-41901' + upSeq, household:'Rivera · 3 members', by:'Alex Rivera', mins:0,
+    const item = {id, photoId:a.photoId, memberId:m.id, name:m.name, age:m.role, product:m.product, order:'RR-41901' + upSeq, household:'Rivera · 3 members', by:'Alex Rivera', mins:0,
       photo:a.photo, sev:'warn',
       issue: f ? {reason:CHECK_REASON[f.key], proof:PROOF[f.key]} : {label:'Manual review', proof:'All checks passed. This product reviews every photo'},
       checks:CHECKS.map(cc => { const x = a.checks.find(y => y.key === cc.key); return x ? {key:cc.key, label:cc.label, status:x.status, score:x.score == null ? BASE[cc.key] : x.score} : {key:cc.key, label:cc.label, status:'ok', score:BASE[cc.key]}; })};
@@ -1094,8 +1182,78 @@
       </div>`;
   }
 
+  /* ---------- insights ---------- */
+  const pct = (n, d) => d ? Math.round(n / d * 100) : null;
+  function checkRec(t, key){
+    const st = t.checksStats[key], thr = t.thresholds[key] || DEFAULT_THRESHOLD;
+    if (t.applied[key]) return {text:'Applied · collecting data', kind:'idle'};
+    if (st.flagged < MIN_SAMPLE && st.misses === 0) return {text:'Not enough data', kind:'idle'};
+    if (t.spotSampled && st.misses / t.spotSampled >= .015) return {text:`Raise threshold to ${thr + 5}`, kind:'warn', act:'raise', why:`${st.misses} missed in spot checks`};
+    const agree = st.agreed / st.flagged;
+    if (agree < .45) return {text:`Lower threshold to ${thr - 8}`, kind:'warn', act:'lower', why:'Staff usually approve these'};
+    if (agree >= .8 && t.checks[key].unsure !== 'retake') return {text:'Ask guest to retake when unsure', kind:'info', act:'retake', why:'Staff almost always deny these'};
+    return {text:'No change', kind:'ok'};
+  }
+  function suggRec(g){
+    const top = Object.entries(g.changed).sort((a, b) => b[1] - a[1])[0];
+    if (g.suggested < 20) return {text:'Not enough data', kind:'idle'};
+    if (g.approved / g.suggested >= .5) return {text:'Usually approved', kind:'warn'};
+    if (top && top[1] / g.suggested >= .15) return {text:`Often changed to ${(reasonById(top[0]) || {label:top[0]}).label}`, kind:'warn'};
+    if (g.edited / g.suggested >= .25) return {text:'Message often edited', kind:'warn', act:'message'};
+    return {text:'Working well', kind:'ok'};
+  }
+  const meter = (v, kind) => v == null ? '<span class="faint">—</span>' : `<span class="meter"><span class="bar ${kind}"><i style="width:${v}%"></i></span><span class="num">${v}%</span></span>`;
+  function renderInsights(){
+    const t = TENANTS[S.tenant];
+    const checkRows = CHECKS.map(c => {
+      const st = t.checksStats[c.key], thr = t.thresholds[c.key] || DEFAULT_THRESHOLD, agree = pct(st.agreed, st.flagged), r = checkRec(t, c.key);
+      return `<tr><td>${c.label}</td><td class="num">${st.flagged}</td><td>${meter(agree, agree == null ? 'ok' : agree < 45 ? 'warn' : 'ok')}</td><td class="num">${st.misses}<span class="faint"> / ${t.spotSampled}</span></td>
+        <td class="num">${thr}${thr !== DEFAULT_THRESHOLD ? ` <span class="faint">(default ${DEFAULT_THRESHOLD})</span>` : ''}</td>
+        <td><div class="rec"><span class="pill ${r.kind}">${r.text}</span>${r.why ? `<span class="faint">${r.why}</span>` : ''}</div></td>
+        <td style="text-align:right;white-space:nowrap">${r.act ? `<button class="btn sm" data-act="ins-apply" data-k="${c.key}" data-a="${r.act}">Apply</button>` : ''}${thr !== DEFAULT_THRESHOLD || t.applied[c.key] ? ` <button class="btn ghost sm" data-act="ins-reset" data-k="${c.key}">Reset</button>` : ''}</td></tr>`;
+    }).join('');
+    const suggRows = REASONS.filter(r => t.sugg[r.id]).map(r => {
+      const g = t.sugg[r.id], top = Object.entries(g.changed).sort((a, b) => b[1] - a[1])[0], rec = suggRec(g);
+      return `<tr><td>${esc(r.label)}</td><td class="num">${g.suggested}</td><td>${meter(pct(g.accepted, g.suggested), 'ok')}</td>
+        <td>${top ? `${esc((reasonById(top[0]) || {label:top[0]}).label)} <span class="faint num">${pct(top[1], g.suggested)}%</span>` : '<span class="faint">—</span>'}</td>
+        <td class="num">${pct(g.approved, g.suggested)}%</td><td class="num">${pct(g.edited, g.suggested)}%</td>
+        <td><span class="pill ${rec.kind}">${rec.text}</span></td>
+        <td style="text-align:right">${rec.act === 'message' && S.tenant === 'lagoon' ? `<button class="btn sm" data-act="ins-msg" data-r="${r.id}">Edit message</button>` : ''}</td></tr>`;
+    }).join('');
+    const evs = S.events.slice(0, 50);
+    $('#v-insights').innerHTML = `<div class="pagehead"><div><h1>Review insights</h1><p>Last 30 days · ${t.decisions} staff decisions · ${t.spotSampled} spot-checked photos</p></div>
+        <select id="ins-tenant" style="width:auto" aria-label="Tenant">${Object.entries(TENANTS).map(([k, v]) => `<option value="${k}" ${k === S.tenant ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
+      <div class="panel"><div class="sethead"><h3>Check accuracy</h3><p>How often staff agree when a check sends a photo to review, and what spot checks found it missed.</p></div>
+        <div class="tablewrap"><table><thead><tr><th>Check</th><th class="num">Sent to review</th><th>Staff agreed</th><th class="num">Missed</th><th class="num">Flag below</th><th>Recommendation</th><th></th></tr></thead><tbody>${checkRows}</tbody></table></div></div>
+      <div class="panel"><div class="sethead"><h3>Suggestion accuracy</h3><p>How staff respond to each suggested denial reason.</p></div>
+        <div class="tablewrap"><table><thead><tr><th>Suggested reason</th><th class="num">Suggested</th><th>Accepted</th><th>Most often changed to</th><th class="num">Approved instead</th><th class="num">Message edited</th><th>Signal</th><th></th></tr></thead><tbody>${suggRows}</tbody></table></div></div>
+      <div class="panel"><div class="sethead" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h3>Event log</h3><p>Events recorded in this session.</p></div><span class="faint num">${S.events.length}</span></div>
+        ${evs.length ? `<ul class="evlog">${evs.map(e => `<li><details><summary><span class="mono faint">${e.ts.slice(11, 19)}</span><span class="evname">${e.event}</span><span class="faint evsum">${esc(evSummary(e))}</span></summary><pre>${esc(JSON.stringify(e, null, 2))}</pre></details></li>`).join('')}</ul>`
+          : `<div class="empty" style="padding:32px"><p>No events yet. Review a photo, upload one in the member portal, or change a setting.</p></div>`}
+      </div>`;
+  }
+  function settingName(id){
+    const prod = i => PRODUCTS[+i].toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (id.startsWith('pv-')) return `product.${prod(id.slice(3))}.photo_approval`;
+    if (id.startsWith('pm-')) return `product.${prod(id.slice(3))}.approval_mode`;
+    if (id.startsWith('cf-')) return `checks.${id.slice(3)}.fail`;
+    if (id.startsWith('cu-')) return `checks.${id.slice(3)}.unsure`;
+    if (id.startsWith('rl-')) return `reasons.${id.slice(3)}.label`;
+    if (id.startsWith('rg-')) return `reasons.${id.slice(3)}.message`;
+    return {'o-spot':'spot_check.daily_sample', 'o-crop':'crop_to_card', 'o-reuse':'reuse_approved_photos'}[id] || id;
+  }
+  function evSummary(e){
+    if (e.event === 'review_decision') return `${e.decision} · ${e.suggestion}${e.final_reason ? ' · ' + e.final_reason : ''}`;
+    if (e.event === 'photo_checked') return `${e.outcome}${e.suggested_reason ? ' · ' + e.suggested_reason : ''}`;
+    if (e.event === 'setting_changed') return `${e.setting} → ${e.to != null ? e.to : e.value}`;
+    if (e.event === 'spot_check_completed') return `${e.sampled} sampled · ${e.flagged_photo_ids.length} flagged`;
+    if (e.event === 'gate_photo_action') return e.action;
+    if (e.event === 'review_reopened') return e.previous_decision;
+    return '';
+  }
+
   /* ---------- navigation ---------- */
-  const VIEWS = ['queue', 'portal', 'gate', 'settings'];
+  const VIEWS = ['queue', 'portal', 'gate', 'settings', 'insights'];
   function show(v){
     if (!VIEWS.includes(v)) v = 'queue';
     S.view = v;
@@ -1105,6 +1263,7 @@
     if (v === 'portal') renderPortal();
     if (v === 'gate') renderGate();
     if (v === 'settings') renderSettings();
+    if (v === 'insights') renderInsights();
     try { history.replaceState(null, '', '#' + v); } catch (_) {}
   }
 
@@ -1117,7 +1276,7 @@
     switch (act) {
       case 'keys': S.keysOpen = !S.keysOpen; renderQueue(); break;
       case 'qtab': S.qtab = a.dataset.k; renderQueue(); break;
-      case 'select': S.editing = null; S.sel = +a.dataset.i; renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
+      case 'select': S.editing = null; S.sel = +a.dataset.i; S.shownAt = performance.now(); renderQueue(); if (matchMedia('(max-width:900px)').matches) { const d = $('.detail'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); } break;
       case 'prev': case 'next': go(act === 'next' ? 1 : -1); break;
       case 'allchecks': S.allChecks = !S.allChecks; renderQueue(); break;
       case 'crop': S.crop[q.id].orig = a.dataset.v === 'orig'; renderQueue(); break;
@@ -1130,15 +1289,36 @@
       case 'reopen': { const d = S.done.splice(+a.dataset.i, 1)[0]; reopenItem(d); toast(`${d.item.name} is back in review`, 'ok'); break; }
       case 'spotflag': S.spot.flags[a.dataset.i] = !S.spot.flags[a.dataset.i]; renderQueue(); break;
       case 'goto-settings': show('settings'); break;
+      case 'ins-apply': {
+        const t = TENANTS[S.tenant], k = a.dataset.k, thr = t.thresholds[k] || DEFAULT_THRESHOLD;
+        let setting, from, to;
+        if (a.dataset.a === 'retake') { setting = `checks.${k}.unsure`; from = t.checks[k].unsure; to = 'retake'; t.checks[k].unsure = 'retake'; }
+        else { setting = `threshold.${k}`; from = thr; to = a.dataset.a === 'raise' ? thr + 5 : thr - 8; t.thresholds[k] = to; }
+        t.applied[k] = {setting, from};
+        track('setting_changed', {tenant_id:S.tenant, setting, from, to, source:'insights_recommendation'});
+        toast(`Applied to ${t.name}`, 'ok');
+        break;
+      }
+      case 'ins-reset': {
+        const t = TENANTS[S.tenant], k = a.dataset.k, ap = t.applied[k];
+        if (ap && ap.setting.startsWith('checks.')) t.checks[k].unsure = ap.from;
+        delete t.thresholds[k]; delete t.applied[k];
+        track('setting_changed', {tenant_id:S.tenant, setting:`threshold.${k}`, to:'default', source:'insights_reset'});
+        toast(`${CHECK_LABEL[k]} reset to default`, 'ok');
+        break;
+      }
+      case 'ins-msg': { show('settings'); const el = $('#rg-' + a.dataset.r); if (el) { el.scrollIntoView({block:'center'}); el.focus(); el.select(); } break; }
       case 'spotclear': S.spot.flags = {}; renderQueue(); break;
       case 'spotconfirm': {
         const fl = Object.keys(S.spot.flags).filter(k => S.spot.flags[k]).map(Number);
         fl.forEach(i => {
           const [n, p] = SPOT[i];
           const item = {id:'sp' + i, name:n, age:'Adult', product:'Season Pass – Gold 2027', order:'RR-41861' + i, household:n.split(' ')[1] + ' · 1 member', by:n, mins:95, photo:p, sev:'warn', issue:{label:'Flagged in spot check', proof:'Auto-approved earlier today. The pass stays active until you decide'}, checks:sc()};
-          S.queue.push(item); initItem(item); S.stats.auto--;
+          item.fromSpot = true; S.queue.push(item); initItem(item); S.stats.auto--;
         });
         S.spot.done = true;
+        T0.spotSampled += spotList().length;
+        track('spot_check_completed', {reviewer_id:REVIEWER_ID, sampled:spotList().length, flagged_photo_ids:fl.map(i => 'sp' + i)});
         if (fl.length) { S.qtab = 'review'; S.sel = S.queue.length - fl.length; }
         renderQueue();
         toast(fl.length ? `${fl.length} photo${fl.length > 1 ? 's' : ''} sent to review` : 'Sample checked', 'ok');
@@ -1158,11 +1338,12 @@
         const qi = S.queue.findIndex(x => x.memberId === m.id || x.id === m.queueId);
         if (qi > -1) S.queue.splice(qi, 1);
         m.status = 'approved'; delete m.reasons;
+        track('gate_photo_action', {member_id:m.id, product:m.product, action:act === 'g-capture' ? 'photo_captured' : 'photo_confirmed'});
         renderGate(); renderPortal(); renderQueue();
         toast(`${m.name} admitted`, 'ok');
         break;
       }
-      case 'g-nomatch': { const m = memberById(S.gate.sel); m.status = 'awaiting'; m.photo = null; renderGate(); renderPortal(); toast('Photo removed. Take a new one to admit.', 'warn'); break; }
+      case 'g-nomatch': { const m = memberById(S.gate.sel); track('gate_photo_action', {member_id:m.id, product:m.product, action:'photo_mismatch'}); m.status = 'awaiting'; m.photo = null; renderGate(); renderPortal(); toast('Photo removed. Take a new one to admit.', 'warn'); break; }
       case 'r-add': { const id = 'r' + Date.now(); REASONS.push({id, label:'New reason', guest:'', uses:0}); renderSettings(); const el = $('#rl-' + id); if (el) { el.focus(); el.select(); } break; }
       case 'r-del': { const i = REASONS.findIndex(r => r.id === a.dataset.id); if (i > -1) { const [r] = REASONS.splice(i, 1); renderSettings(); toast(`Deleted "${r.label}"`, 'ok', () => { REASONS.splice(i, 0, r); renderSettings(); }); } break; }
     }
@@ -1175,6 +1356,7 @@
   });
   document.addEventListener('change', e => {
     const t = e.target, id = t.id || '';
+    if (id === 'ins-tenant') { S.tenant = t.value; renderInsights(); return; }
     if (id === 'p-file' && t.files && t.files[0]) { runUpload(t.files[0]); t.value = ''; return; }
     let saved = true;
     if (id.startsWith('pv-')) { S.products[PRODUCTS[+id.slice(3)]].validation = t.checked; renderSettings(); }
@@ -1186,7 +1368,7 @@
     else if (id === 'o-reuse') S.opts.reuse = t.checked;
     else if (id.startsWith('rl-') || id.startsWith('rg-')) { const r = reasonById(id.slice(3)); if (r) r[id.startsWith('rl-') ? 'label' : 'guest'] = t.value; }
     else saved = false;
-    if (saved) toast('Saved', 'ok');
+    if (saved) { track('setting_changed', {setting:settingName(id), value:t.type === 'checkbox' ? t.checked : t.value, source:'settings'}); toast('Saved', 'ok'); }
   });
 
   document.addEventListener('keydown', e => {
