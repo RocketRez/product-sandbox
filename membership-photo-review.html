@@ -1,0 +1,956 @@
+<title>Membership Photo Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Layout: back-office shell. Sticky view switcher, then one working surface per view (queue list + detail, phone + email, scanner + result). Tokens follow the Orion roadmap page. */
+  :root{
+    --bg:#FFFFFF; --bg-soft:#F7F9FC; --surface:#F1F4F8; --card:#FFFFFF; --photo-bg:#E9EDF3;
+    --line:rgba(25,25,25,0.10); --line-soft:rgba(25,25,25,0.06);
+    --ink:#191919; --ink-dim:#4A5261; --ink-faint:#7A8496;
+    --brand:#0051F9; --brand-dark:#003ECC; --brand-soft:#EAF0FF; --on-brand:#FFFFFF;
+    --ok:#0A7F52; --ok-soft:#E5F5EC; --warn:#8A6410; --warn-soft:#FFF5D9; --bad:#C0392B; --bad-soft:#FCECEA;
+    --shadow:0 1px 2px rgba(25,25,25,.06),0 6px 20px rgba(25,25,25,.05);
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --display:'Archivo','Segoe UI',system-ui,sans-serif;
+    --body:'Inter','Segoe UI',system-ui,sans-serif;
+    --radius:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0D1117; --bg-soft:#11161E; --surface:#171D27; --card:#141A23; --photo-bg:#1E2531;
+      --line:rgba(255,255,255,0.11); --line-soft:rgba(255,255,255,0.06);
+      --ink:#E8ECF2; --ink-dim:#B3BCCA; --ink-faint:#808B9D;
+      --brand:#5B8CFF; --brand-dark:#86A9FF; --brand-soft:rgba(91,140,255,.15); --on-brand:#0D1117;
+      --ok:#45C890; --ok-soft:rgba(69,200,144,.14); --warn:#E5B54A; --warn-soft:rgba(229,181,74,.14); --bad:#F07467; --bad-soft:rgba(240,116,103,.14);
+      --shadow:0 1px 2px rgba(0,0,0,.4);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0D1117; --bg-soft:#11161E; --surface:#171D27; --card:#141A23; --photo-bg:#1E2531;
+    --line:rgba(255,255,255,0.11); --line-soft:rgba(255,255,255,0.06);
+    --ink:#E8ECF2; --ink-dim:#B3BCCA; --ink-faint:#808B9D;
+    --brand:#5B8CFF; --brand-dark:#86A9FF; --brand-soft:rgba(91,140,255,.15); --on-brand:#0D1117;
+    --ok:#45C890; --ok-soft:rgba(69,200,144,.14); --warn:#E5B54A; --warn-soft:rgba(229,181,74,.14); --bad:#F07467; --bad-soft:rgba(240,116,103,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .wrap{max-width:1200px;margin:0 auto;padding-inline:24px}
+  @media (max-width:600px){.wrap{padding-inline:16px}}
+
+  header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--bg-soft),var(--bg));padding-block:26px 22px}
+  .crumbs{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .wordmark{font-family:var(--display);font-weight:800;letter-spacing:-.01em;text-transform:none;font-size:15px;color:var(--ink)}
+  .wordmark b{color:var(--brand);font-weight:800}
+  .proto{color:var(--warn);background:var(--warn-soft);border-radius:5px;padding:2px 7px}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,38px);letter-spacing:-.025em;line-height:1.05;margin:14px 0 6px;text-wrap:balance}
+  .sub{margin:0;color:var(--ink-dim);max-width:70ch;text-wrap:pretty}
+
+  .viewbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .viewbar .wrap{display:flex;gap:10px;align-items:center;padding-block:10px;overflow-x:auto}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .seg button{white-space:nowrap;font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-dim);background:none;border:0;padding:8px 13px;border-radius:7px;cursor:pointer;font-weight:500;display:inline-flex;gap:7px;align-items:center}
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-selected="true"]{background:var(--card);color:var(--brand);font-weight:600;box-shadow:var(--shadow)}
+  .count{font-variant-numeric:tabular-nums;background:var(--brand);color:var(--on-brand);border-radius:99px;padding:0 7px;font-size:11px;line-height:18px}
+  .count.zero{background:var(--line);color:var(--ink-faint)}
+  .modechip{margin-left:auto;white-space:nowrap;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+  .modechip b{color:var(--ink);font-weight:600}
+
+  main{padding-block:24px 80px}
+  .view{display:grid;gap:20px}
+  [hidden]{display:none!important}
+  h2{font-family:var(--display);font-size:20px;letter-spacing:-.015em;margin:0;text-wrap:balance}
+  h3{font-family:var(--display);font-size:15px;margin:0;letter-spacing:-.005em}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+  .muted{color:var(--ink-dim)}
+  .faint{color:var(--ink-faint)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+  .note{font-size:12px;color:var(--ink-faint)}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.4fr);border:1px solid var(--line);border-radius:var(--radius);background:var(--card);overflow:hidden}
+  .stat{padding:14px 16px;border-right:1px solid var(--line-soft);display:grid;gap:2px;align-content:start}
+  .stat:last-child{border-right:0}
+  .stat .n{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+  .stat .n.brand{color:var(--brand)}
+  .stat.time{background:var(--brand-soft)}
+  .timebar{display:grid;gap:6px;margin-top:6px}
+  .tb{display:grid;grid-template-columns:64px 1fr auto;gap:8px;align-items:center;font-size:12px}
+  .tb .track{height:8px;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:4px;overflow:hidden}
+  .tb .fill{height:100%;border-radius:4px;background:var(--ink-faint)}
+  .tb .fill.now{background:var(--brand)}
+  .tb span:last-child{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:11px;color:var(--ink-dim)}
+  @media (max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{border-bottom:1px solid var(--line-soft)}.stat.time{grid-column:1/-1}}
+
+  .subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .subtabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;color:var(--ink-dim);font-weight:500;white-space:nowrap;display:inline-flex;gap:7px;align-items:center}
+  .subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brand)}
+  .subtabs .c{font-family:var(--mono);font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+
+  /* queue */
+  .qgrid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:860px){.qgrid{grid-template-columns:minmax(0,1fr)}}
+  .qlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .qitem{width:100%;text-align:left;display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);cursor:pointer}
+  .qitem:hover{border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+  .qitem[aria-current="true"]{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+  .qitem .thumb{width:52px;height:64px}
+  .qitem .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qitem .pr{font-size:12px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .flag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:1px 7px;margin-top:4px;max-width:100%}
+  .flag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+  .flag.bad{color:var(--bad);background:var(--bad-soft)}
+  .flag span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .thumb{border-radius:8px;overflow:hidden;background:var(--photo-bg);position:relative}
+  .thumb svg{display:block;width:100%;height:100%}
+  .detail{padding:20px;display:grid;gap:18px}
+  .dhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:baseline;justify-content:space-between}
+  .dhead h2{font-size:22px}
+  .dbody{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:22px}
+  @media (max-width:640px){.dbody{grid-template-columns:minmax(0,1fr)}}
+  .photos{display:grid;gap:10px;align-content:start}
+  .photos.pair{grid-template-columns:1fr 1fr}
+  .pframe{display:grid;gap:6px}
+  .bigphoto{aspect-ratio:4/5;width:100%;max-width:100%;border-radius:10px;overflow:hidden;background:var(--photo-bg);position:relative}
+  .bigphoto .inner{width:100%;height:100%;transition:transform .25s ease;transform-origin:50% 50%}
+  .bigphoto svg{display:block;width:100%;height:100%}
+  .bigphoto .cardframe{position:absolute;inset:8%;border:1.5px dashed rgba(255,255,255,.85);border-radius:6px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.18)}
+  .cropbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px}
+  .cropbar input[type=range]{flex:1;min-width:90px;accent-color:var(--brand)}
+  .tiny-seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .tiny-seg button{background:none;border:0;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--ink-dim)}
+  .tiny-seg button[aria-pressed="true"]{background:var(--brand-soft);color:var(--brand);font-weight:600}
+
+  .why{border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:10px 12px;display:grid;gap:2px}
+  .why b{color:var(--warn)}
+  .why.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+  .why.bad b{color:var(--bad)}
+  .checks{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+  .checks li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center}
+  .ic{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;line-height:1}
+  .ic.ok{background:var(--ok-soft);color:var(--ok)}
+  .ic.warn{background:var(--warn-soft);color:var(--warn)}
+  .ic.bad{background:var(--bad-soft);color:var(--bad)}
+  .ic.wait{background:var(--surface);color:var(--ink-faint)}
+  .checks .pct{font-family:var(--mono);font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .ctx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13px;margin:0}
+  .ctx dt{color:var(--ink-faint)}
+  .ctx dd{margin:0}
+
+  .reasons{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:5px 11px 5px 6px;font-size:13px;cursor:pointer;color:var(--ink-dim)}
+  .chip kbd{font-family:var(--mono);font-size:10px;min-width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:var(--surface);color:var(--ink-faint)}
+  .chip[aria-pressed="true"]{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+  .chip[aria-pressed="true"] kbd{background:var(--bad);color:var(--card)}
+  .chip .sug{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+
+  .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:9px;padding:10px 16px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+  .btn:hover{border-color:var(--ink-faint)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+  .btn.primary:hover{background:var(--brand-dark);border-color:var(--brand-dark)}
+  .btn.ok{background:var(--ok);border-color:var(--ok);color:var(--card)}
+  .btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+  .btn.danger:hover{background:var(--bad-soft)}
+  .btn.small{padding:6px 11px;font-size:13px}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .btn kbd{font-family:var(--mono);font-size:11px;opacity:.75;border:1px solid currentColor;border-radius:4px;padding:0 4px;line-height:16px}
+  .keys{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-faint)}
+  .keys kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink-dim);background:var(--card)}
+  @media (hover:none){.keys{display:none}}
+
+  .empty{padding:48px 24px;text-align:center;display:grid;gap:8px;justify-items:center}
+  .empty .big{font-family:var(--display);font-size:22px;font-weight:700}
+
+  .spotgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+  .spot{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+  .spot .thumb{aspect-ratio:4/5}
+  .spot[data-flagged="true"]{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+  .spot .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:13px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500;background:var(--bg-soft)}
+  tr:last-child td{border-bottom:0}
+  td.num{font-variant-numeric:tabular-nums}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.ok{color:var(--ok);background:var(--ok-soft)}
+  .pill.warn{color:var(--warn);background:var(--warn-soft)}
+  .pill.bad{color:var(--bad);background:var(--bad-soft)}
+  .pill.info{color:var(--brand);background:var(--brand-soft)}
+  .pill.idle{color:var(--ink-faint);background:var(--surface)}
+
+  /* guest */
+  .guestgrid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:28px;align-items:start}
+  @media (max-width:860px){.guestgrid{grid-template-columns:minmax(0,1fr)}}
+  .phone{border:1px solid var(--line);border-radius:30px;padding:10px;background:var(--surface);box-shadow:var(--shadow);max-width:380px;width:100%}
+  .screen{background:var(--card);border-radius:22px;min-height:620px;overflow:hidden;display:flex;flex-direction:column}
+  .sbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line-soft)}
+  .sbar .park{font-family:var(--display);font-weight:700}
+  .sbody{padding:18px;display:grid;gap:14px;align-content:start;flex:1}
+  .member{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);width:100%;text-align:left}
+  button.member{cursor:pointer}
+  button.member:hover{border-color:var(--brand)}
+  .member .thumb{width:48px;height:58px}
+  .ph-empty{width:100%;height:100%;display:grid;place-items:center;color:var(--ink-faint);font-size:22px;border:1.5px dashed var(--line);border-radius:8px;background:var(--bg-soft)}
+  .back{background:none;border:0;color:var(--brand);cursor:pointer;padding:0;font-weight:600;justify-self:start}
+  .samples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .sample{display:grid;gap:4px;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--card);cursor:pointer;font-size:11px;text-align:center;color:var(--ink-dim)}
+  .sample:hover{border-color:var(--brand)}
+  .sample .thumb{aspect-ratio:4/5}
+  .guide{position:relative;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:var(--photo-bg);max-width:220px;width:100%;justify-self:center}
+  .guide svg{display:block;width:100%;height:100%}
+  .guide .oval{position:absolute;left:22%;right:22%;top:12%;bottom:30%;border:2px solid rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+  .result{border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+  .result.ok{background:var(--ok-soft)}
+  .result.ok h3{color:var(--ok)}
+  .result.warn{background:var(--warn-soft)}
+  .result.warn h3{color:var(--warn)}
+  .result.bad{background:var(--bad-soft)}
+  .result.bad h3{color:var(--bad)}
+  .email{max-width:520px}
+  .email .hdr{padding:14px 18px;border-bottom:1px solid var(--line-soft);display:grid;gap:2px;font-size:13px}
+  .email .bd{padding:18px;display:grid;gap:12px}
+  .email .reasonbox{background:var(--bad-soft);border-radius:8px;padding:10px 12px;color:var(--ink)}
+  .side{display:grid;gap:16px;align-content:start}
+  .explain{display:grid;gap:8px;max-width:62ch}
+  .explain ol{margin:0;padding-left:20px;display:grid;gap:6px;color:var(--ink-dim)}
+
+  /* gate */
+  .gategrid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:860px){.gategrid{grid-template-columns:minmax(0,1fr)}}
+  .scanlist{display:grid;gap:8px}
+  .scanres{padding:22px;display:grid;gap:16px;min-height:360px}
+  .banner{border-radius:12px;padding:16px 18px;display:grid;gap:4px}
+  .banner .big{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+  .banner.ok{background:var(--ok-soft);color:var(--ok)}
+  .banner.warn{background:var(--warn-soft);color:var(--warn)}
+  .banner.info{background:var(--brand-soft);color:var(--brand)}
+  .banner p{margin:0;color:var(--ink)}
+  .scanrow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:18px;align-items:start}
+  .scanrow .thumb{width:120px;height:150px}
+  @media (max-width:480px){.scanrow{grid-template-columns:minmax(0,1fr)}}
+  .flash{animation:flash .5s ease}
+  @keyframes flash{0%{filter:brightness(2.4)}100%{filter:none}}
+
+  /* settings */
+  .setgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:20px;align-items:start}
+  @media (max-width:960px){.setgrid{grid-template-columns:minmax(0,1fr)}}
+  .panel{padding:18px 20px;display:grid;gap:14px}
+  .row{display:flex;gap:14px;align-items:flex-start;justify-content:space-between}
+  .row > div{min-width:0}
+  .switch{position:relative;width:40px;height:22px;flex:none}
+  .switch input{opacity:0;width:100%;height:100%;margin:0;cursor:pointer;position:absolute;inset:0;z-index:1}
+  .switch span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+  .switch span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .switch input:checked + span{background:var(--brand)}
+  .switch input:checked + span::after{transform:translateX(18px)}
+  .switch input:focus-visible + span{outline:2px solid var(--brand);outline-offset:2px}
+  .modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (max-width:720px){.modes{grid-template-columns:minmax(0,1fr)}}
+  .mode{display:grid;gap:6px;padding:14px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--card);align-content:start;position:relative}
+  .mode input{position:absolute;opacity:0}
+  .mode:has(input:checked){border-color:var(--brand);box-shadow:0 0 0 1px var(--brand);background:var(--brand-soft)}
+  .mode:has(input:focus-visible){outline:2px solid var(--brand);outline-offset:2px}
+  .mode .t{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .mode .tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:1px 6px;background:var(--surface);color:var(--ink-faint)}
+  .mode .tag.rec{background:var(--brand);color:var(--on-brand)}
+  .mode p{margin:0;font-size:13px;color:var(--ink-dim)}
+  select,input[type=text],input[type=number]{font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
+  input[type=range]{accent-color:var(--brand)}
+  .est{padding:18px 20px;display:grid;gap:14px;position:sticky;top:76px}
+  .estbar{display:grid;gap:4px}
+  .estbar .lab{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+  .estbar .lab b{font-variant-numeric:tabular-nums}
+  .estbar .track{height:10px;border-radius:5px;background:color-mix(in srgb,var(--ink) 7%,transparent);overflow:hidden}
+  .estbar .fill{height:100%;background:var(--ink-faint);border-radius:5px;transition:width .3s}
+  .estbar.cur .fill{background:var(--brand)}
+  .estbar.cur .lab{font-weight:600}
+
+  /* changes */
+  .lede{max-width:72ch;color:var(--ink-dim);margin:0;text-wrap:pretty}
+  td .delta{font-family:var(--mono);font-size:12px;color:var(--ok);font-weight:600}
+  td .delta.dec{color:var(--warn)}
+
+  #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;transition:.2s;background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 12px 10px 16px;display:flex;gap:14px;align-items:center;font-size:13px;z-index:60;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  #toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+  #toast button{background:none;border:1px solid color-mix(in srgb,var(--bg) 40%,transparent);color:var(--bg);border-radius:6px;padding:3px 9px;cursor:pointer;font-weight:600}
+  .shake{animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="crumbs"><span class="wordmark">Rocket<b>Rez</b></span><span>Back office</span><span>Memberships</span><span class="proto">Prototype · example data</span></div>
+    <h1>Membership Photo Review</h1>
+    <p class="sub">Based on the Membership Photo Validation PRD, with changes that cut staff review time. Automatic checks catch bad photos when the guest uploads them, so staff only see the photos the checks aren't sure about. Switch review modes under Settings to compare with the PRD as written.</p>
+  </div>
+</header>
+
+<nav class="viewbar" aria-label="Prototype views">
+  <div class="wrap">
+    <div class="seg" role="tablist" id="viewtabs">
+      <button role="tab" data-view="queue" aria-selected="true">Review queue <span class="count" id="qcount">6</span></button>
+      <button role="tab" data-view="guest" aria-selected="false">Guest upload</button>
+      <button role="tab" data-view="gate" aria-selected="false">Gate &amp; POS</button>
+      <button role="tab" data-view="settings" aria-selected="false">Settings</button>
+      <button role="tab" data-view="changes" aria-selected="false">Changes vs PRD</button>
+    </div>
+    <span class="modechip">Mode: <b id="modelabel">Assisted</b></span>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section class="view" id="v-queue"></section>
+  <section class="view" id="v-guest" hidden></section>
+  <section class="view" id="v-gate" hidden></section>
+  <section class="view" id="v-settings" hidden></section>
+
+  <section class="view" id="v-changes" hidden>
+    <div style="display:grid;gap:8px">
+      <h2>What changes from the PRD, and why</h2>
+      <p class="lede">The PRD sends every photo uploaded online to staff for a manual decision. Most photos are fine, and most bad ones fail for the same few mechanical reasons. Software can catch those while the guest is still on the upload screen. That leaves staff with a short list of judgement calls instead of a full queue.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:26%">PRD as written</th><th style="width:44%">Proposal</th><th>Effect on staff time</th></tr></thead>
+        <tbody>
+          <tr><td>Every online upload goes to the Review Queue.</td><td><b>Automatic checks score every upload.</b> Photos that pass every check are approved straight away. Staff only see photos the checks are unsure about, plus a small random sample to confirm the checks are working.</td><td><span class="delta">Largest saving</span><br>Roughly 5% of uploads reach a person (example rate, needs measuring).</td></tr>
+          <tr><td>Staff deny photos with no face, sunglasses, poor light or blur, and the guest finds out by email.</td><td><b>The guest is told at upload and retakes on the spot.</b> A camera guide shows where to put their face. Obvious failures never reach the queue, so there is no denial email and no wait for a resubmit.</td><td><span class="delta">Removes most denials</span><br>Fewer resubmits for staff to review a second time.</td></tr>
+          <tr><td>Staff crop each photo before approving.</td><td><b>Photos are auto-cropped to the card frame.</b> Staff adjust the crop only when it looks wrong.</td><td><span class="delta">Removes one step per photo</span></td></tr>
+          <tr><td>Staff pick at least one denial reason.</td><td><b>The reason the check flagged is pre-selected.</b> Staff press one key to confirm or change it.</td><td><span class="delta">Fewer clicks</span></td></tr>
+          <tr><td>One photo per review screen, approve or deny with the mouse.</td><td><b>A keyboard-driven queue.</b> A approves, D denies, 1–7 toggle reasons, Z undoes. The next photo loads automatically. Undo replaces confirmation dialogs.</td><td><span class="delta">Faster per photo</span><br>A few seconds per flagged photo.</td></tr>
+          <tr><td>Open question: does renewal reuse the approved photo?</td><td><b>The approved photo belongs to the person, not the membership.</b> It is reused for renewals and for that person's other memberships until it is a set age (for example 3 years).</td><td><span class="delta">Fewer uploads</span><br>Renewals and added memberships skip review.</td></tr>
+          <tr><td>The membership can't be used until staff approve.</td><td><b>Optional gate-check mode.</b> The pass activates on upload, and the gate attendant confirms the face matches at the first scan. Gate staff already look at the photo when they scan.</td><td><span class="delta">No back-office review</span><br><span class="delta dec">Adds about 2 seconds at the first visit</span></td></tr>
+          <tr><td>Each operator writes its own denial reasons.</td><td><b>Ship a default reason list.</b> Operators edit the wording or add reasons, such as Lagoon's own standards.</td><td><span class="delta">Faster setup</span></td></tr>
+          <tr><td>Automated or AI photo checks are out of scope.</td><td><b>Needs a decision.</b> Face, eye, light and blur checks can run in the guest's browser using standard face detection, so the photo isn't sent to another service. A face match against the previous photo would run inside RocketRez.</td><td>Brings automated checks into scope, which the savings above depend on.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card panel">
+      <h3>Questions this raises</h3>
+      <ul class="muted" style="margin:0;padding-left:20px;display:grid;gap:6px">
+        <li>How accurate do the checks need to be before an operator will trust auto-approval? What spot-check rate keeps them confident (the prototype uses 5%)?</li>
+        <li>Will Lagoon accept auto-approval, or start in Manual and move to Assisted after reviewing the sample results?</li>
+        <li>For gate-check mode, what does the attendant do when a photo doesn't match: take a new photo on the spot, or turn the guest away?</li>
+        <li>Face matching against a previous photo is biometric processing in some states (for example Illinois BIPA). Ship it per operator, behind consent, or leave it out?</li>
+        <li>Which checks give a clear fail (always ask the guest to retake) and which give an uncertain result (send to staff)?</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite"><span id="toastmsg"></span><button id="toastbtn" hidden>Undo</button></div>
+
+<script>
+(function(){
+  /* ---------- illustrated portraits (stand-ins for member photos) ---------- */
+  let fid = 0;
+  const HAIR = {
+    short:'M-26 -4 Q-28 -37 0 -37 Q28 -37 26 -4 Q21 -22 0 -23 Q-21 -22 -26 -4Z',
+    long:'M-27 -2 Q-31 -39 0 -38 Q31 -39 27 -2 L29 36 Q22 32 20 10 Q18 -20 0 -22 Q-18 -20 -20 10 Q-22 32 -29 36Z',
+    curly:'M-29 -2 Q-36 -20 -24 -32 Q-18 -44 0 -40 Q18 -44 24 -32 Q36 -20 29 -2 Q24 -10 22 -18 Q10 -26 0 -24 Q-10 -26 -22 -18 Q-24 -10 -29 -2Z',
+    bun:'M-26 -4 Q-28 -37 0 -37 Q28 -37 26 -4 Q21 -22 0 -23 Q-21 -22 -26 -4Z M-10 -40 a10 9 0 1 0 20 0 a10 9 0 1 0 -20 0'
+  };
+  function person(x, y, sc, o){
+    const glasses = o.glasses ? `<g fill="#151515" opacity="${o.glasses === 'tint' ? .5 : .93}"><rect x="-19" y="-9" width="15" height="11" rx="4"/><rect x="4" y="-9" width="15" height="11" rx="4"/></g><path d="M-4 -5 H4" stroke="#151515" stroke-width="1.6"/>` : '';
+    const eyes = `<circle cx="-11" cy="-3" r="2.6" fill="#1d1d1d"/><circle cx="11" cy="-3" r="2.6" fill="#1d1d1d"/><path d="M-16 -10 Q-11 -13 -6 -10 M6 -10 Q11 -13 16 -10" stroke="${o.hair}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    const hat = o.hat ? `<path d="M-27 -12 Q-27 -42 0 -42 Q27 -42 27 -12 Z" fill="${o.hat}"/><path d="M-31 -14 Q0 -3 31 -14 L31 -9 Q0 2 -31 -9Z" fill="${o.hat}" opacity=".8"/>` : '';
+    return `<g transform="translate(${x} ${y}) scale(${sc})">
+      <path d="M-54 96 Q-52 54 0 52 Q52 54 54 96 Z" fill="${o.shirt}"/>
+      <rect x="-9" y="26" width="18" height="28" rx="7" fill="${o.skin}"/>
+      <ellipse cx="0" cy="0" rx="25" ry="31" fill="${o.skin}"/>
+      <path d="${HAIR[o.style || 'short']}" fill="${o.hair}"/>
+      ${eyes}${glasses}
+      <path d="M-1 4 Q2 10 -2 11" stroke="rgba(0,0,0,.25)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M-8 17 Q0 22 8 17" stroke="#7a3b2e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      ${hat}</g>`;
+  }
+  function portrait(p, alt){
+    p = p || {};
+    const id = 'pf' + (++fid);
+    const o = {skin:p.skin || '#E0AC69', hair:p.hair || '#3B2A1A', shirt:p.shirt || '#3D5A80', style:p.style, glasses:p.glasses, hat:p.hat};
+    let people = '';
+    if (p.two) {
+      people += person(90, 78, .8, {skin:'#C68642', hair:'#2a1a10', shirt:'#9c4f3a', style:'long'});
+      people += person(42, 70, .9, o);
+    } else if (p.small) {
+      people += person(60 + (p.ox || 0), 78 + (p.oy || 0), .5, o);
+    } else {
+      people += person(60 + (p.ox || 0), 68 + (p.oy || 0), 1, o);
+    }
+    const filt = p.blur ? `<filter id="${id}"><feGaussianBlur stdDeviation="${p.blur}"/></filter>` : '';
+    const dark = p.dark ? `<rect width="120" height="150" fill="#000" opacity="${p.dark}"/>` : '';
+    return `<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${alt || 'Member photo'}">${filt}<g ${p.blur ? `filter="url(#${id})"` : ''}><rect width="120" height="150" fill="${p.bg || '#D7E4F2'}"/>${people}</g>${dark}</svg>`;
+  }
+
+  /* ---------- data ---------- */
+  const REASONS = [
+    {id:'glasses', label:'Sunglasses', guest:'Please take off sunglasses so we can see your eyes.'},
+    {id:'hat', label:'Hat or face covering', guest:'Please remove hats or anything covering your face. Religious head coverings are fine.'},
+    {id:'dark', label:'Too dark', guest:'Your photo is too dark. Try facing a window or a lamp.'},
+    {id:'blur', label:'Blurry', guest:'Your photo is blurry. Hold your phone steady and tap your face to focus.'},
+    {id:'frame', label:'Face too small', guest:'Move closer so your head and shoulders fill the frame.'},
+    {id:'person', label:'Not the member', guest:'The photo must show the person named on this membership.'},
+    {id:'group', label:'More than one person', guest:'Only the member should be in the photo.'}
+  ];
+  const R = Object.fromEntries(REASONS.map(r => [r.id, r]));
+
+  const QUEUE = [
+    {id:'m1', name:'Maya Okafor', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418832', household:'Okafor household · 4 members (3 approved)', by:'Maya Okafor (member)', mins:12,
+      photo:{skin:'#8D5524', hair:'#161616', bg:'#CFE3F5', shirt:'#2F6F4F', style:'curly', glasses:'tint'},
+      flag:'Possible sunglasses', sev:'warn', hint:'Tinted lenses, eyes partly visible. Approve if your rules allow tinted prescription glasses.',
+      checks:[['ok','Face found'],['ok','One person'],['warn','Eyes visible','64%'],['ok','Lighting'],['ok','Sharpness']], suggest:['glasses']},
+    {id:'m2', name:'Ethan Brooks', age:'Child · 9', product:'Family Pass – Dependent', order:'RR-418790', household:'Brooks household · 3 members (2 approved)', by:'Dana Brooks (purchaser)', mins:21,
+      photo:{skin:'#F1C27D', hair:'#A0522D', bg:'#E8DCC8', shirt:'#E07A5F', small:true, oy:8, blur:.7},
+      flag:'Face small, auto-cropped', sev:'warn', hint:'Auto-crop enlarged the face 1.9×. Check it is still sharp enough to recognise at the gate.',
+      checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['ok','Lighting'],['warn','Sharpness after crop','58%']], suggest:['blur'], zoom:1.9},
+    {id:'m3', name:'Priya Raman', age:'Adult', product:'Season Pass – Gold 2027 (renewal)', order:'RR-418755', household:'Raman household · 2 members (1 approved)', by:'Priya Raman (member)', mins:34,
+      photo:{skin:'#C68642', hair:'#1E1410', bg:'#DDE8D5', shirt:'#6D28D9', style:'short'},
+      prev:{skin:'#C68642', hair:'#1E1410', bg:'#E3E0F0', shirt:'#264653', style:'long'},
+      flag:'Different from last season', sev:'warn', hint:'Last season\'s approved photo is shown for comparison. A new haircut is the most common cause.',
+      checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['ok','Lighting'],['ok','Sharpness'],['warn','Matches 2026 photo','71%']], suggest:[]},
+    {id:'m4', name:'Jordan Lee', age:'Adult', product:'Season Pass – Silver 2027', order:'RR-418702', household:'Lee household · 2 members (0 approved)', by:'Jordan Lee (member)', mins:47,
+      photo:{skin:'#E8BE8F', hair:'#0F0F0F', bg:'#F2D7D9', shirt:'#1D3557', style:'short'},
+      dup:'Casey Lee · Season Pass – Silver 2027',
+      flag:'Same photo on 2 memberships', sev:'bad', hint:'This exact photo was also uploaded for Casey Lee. One of the two memberships has the wrong person.',
+      checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['ok','Lighting'],['ok','Sharpness'],['bad','Photo not used elsewhere','Duplicate']], suggest:['person']},
+    {id:'m5', name:'Sofia Martinez', age:'Teen · 15', product:'Season Pass – Gold 2027', order:'RR-418677', household:'Martinez household · 5 members (4 approved)', by:'Ana Martinez (purchaser)', mins:58,
+      photo:{skin:'#D9A066', hair:'#2B1B12', bg:'#C9D6DF', shirt:'#F4A261', style:'long', dark:.45},
+      flag:'Low light', sev:'warn', hint:'Dark but the face is readable. Brightening is applied automatically when the card prints.',
+      checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['warn','Lighting','55%'],['ok','Sharpness']], suggest:['dark']},
+    {id:'m6', name:'Liam Chen', age:'Adult', product:'Season Pass – Gold 2027', order:'RR-418641', household:'Chen household · 1 member', by:'Liam Chen (member)', mins:73,
+      photo:{skin:'#F0C8A0', hair:'#121212', bg:'#D6E6F0', shirt:'#2A9D8F', hat:'#C0392B'},
+      flag:'Cap may cover the face', sev:'warn', hint:'Your rules allow caps if the full face is visible.',
+      checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['ok','Lighting'],['ok','Sharpness'],['warn','No head covering','61%']], suggest:['hat']}
+  ];
+
+  const SPOT = [
+    ['Noah Patel', {skin:'#C68642', hair:'#111', bg:'#DCE7F3', shirt:'#2B2D42'}],
+    ['Emma Novak', {skin:'#F6D5B8', hair:'#D4A55A', bg:'#F2E8DA', shirt:'#8D99AE', style:'long'}],
+    ['Lucas Silva', {skin:'#B5835A', hair:'#2B1A10', bg:'#D5E8D4', shirt:'#E76F51', style:'curly'}],
+    ['Ava Johnson', {skin:'#6B4226', hair:'#0E0E0E', bg:'#E8E1F2', shirt:'#2A9D8F', style:'bun'}],
+    ['Mason Wright', {skin:'#F1C27D', hair:'#6B4423', bg:'#F4E1C1', shirt:'#264653'}],
+    ['Zoe Kim', {skin:'#F3D2B3', hair:'#121212', bg:'#D9EAF7', shirt:'#E9C46A', style:'long'}],
+    ['Owen Garcia', {skin:'#D9A066', hair:'#1D1D1D', bg:'#E5E5E5', shirt:'#457B9D'}],
+    ['Lily Brooks', {skin:'#F1C27D', hair:'#A0522D', bg:'#F7E3E3', shirt:'#6D597A', style:'long'}]
+  ];
+
+  const RETURNED = [
+    ['Harper Diaz', 'No face found', 'Retook it 2 min later · approved automatically', 'ok'],
+    ['Ben Walsh', 'More than one person', 'Retook it 5 min later · approved automatically', 'ok'],
+    ['Mia Thompson', 'Too blurry', 'Retook it 1 min later · sent to staff (low light)', 'warn'],
+    ['Ella Fischer', 'Sunglasses', 'Hasn\'t retaken it yet · reminder in 2 days', 'idle'],
+    ['Jack Murphy', 'Too dark', 'Retook it 8 min later · approved automatically', 'ok']
+  ];
+
+  const S = {
+    view:'queue', qtab:'review', sel:0, mode:'assisted',
+    queue: QUEUE.map(q => ({...q})),
+    done: [], spotFlags: {}, spotDone:false,
+    reasons: {}, crop: {},
+    shownAt: performance.now(),
+    autoApproved:117, returned:19,
+    guest: {
+      screen:'home', active:null, checking:null, step:0, result:null,
+      members:[
+        {id:'g1', name:'Alex Rivera', role:'Purchaser · Adult', product:'Season Pass – Gold 2027', status:'approved', photo:{skin:'#C68642', hair:'#2B1A10', bg:'#DCE7F3', shirt:'#1D3557'}},
+        {id:'g2', name:'Jamie Rivera', role:'Adult', product:'Season Pass – Gold 2027', status:'awaiting', photo:null},
+        {id:'g3', name:'Sam Rivera', role:'Child · 7', product:'Season Pass – Gold 2027', status:'denied', reason:'glasses', photo:{skin:'#D9A066', hair:'#2B1A10', bg:'#F4E1C1', shirt:'#E76F51', glasses:'dark'}}
+      ]
+    },
+    gate: {sel:null, flash:false, note:null},
+    settings: {validation:true, spot:5, reuse:true, weekly:1000, autocrop:true}
+  };
+  S.gateExtra = [
+    {id:'x1', name:'Priya Raman', role:'Adult', product:'Season Pass – Gold 2027', status:'review', photo:QUEUE[2].photo},
+    {id:'x2', name:'Riley Park', role:'Adult', product:'Season Pass – Silver 2027', status:'provisional', photo:{skin:'#F3D2B3', hair:'#5A3825', bg:'#E8E1F2', shirt:'#2A9D8F', style:'bun'}}
+  ];
+  S.queue.forEach(q => { S.reasons[q.id] = new Set(q.suggest); S.crop[q.id] = {orig:false, zoom:q.zoom || 1.15}; });
+
+  const SAMPLES = [
+    {key:'good', label:'Clear photo', photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#DDE8F2', shirt:'#264653', style:'long'}},
+    {key:'glasses', label:'Sunglasses', fail:2, reason:'glasses', photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#F4E1C1', shirt:'#264653', style:'long', glasses:'dark'}},
+    {key:'dark', label:'Dark room', fail:3, reason:'dark', photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#C9D6DF', shirt:'#264653', style:'long', dark:.72}},
+    {key:'blur', label:'Shaky', fail:4, reason:'blur', photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#DDE8F2', shirt:'#264653', style:'long', blur:3.2}},
+    {key:'group', label:'With a friend', fail:1, reason:'group', photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#E5E5E5', shirt:'#264653', style:'long', two:true}},
+    {key:'cap', label:'Baseball cap', unsure:true, photo:{skin:'#E8BE8F', hair:'#5A3825', bg:'#D6E6F0', shirt:'#264653', style:'long', hat:'#1D3557'}}
+  ];
+  const GUEST_CHECKS = ['Face found', 'Only one person', 'Eyes visible', 'Good lighting', 'Sharp'];
+
+  const MODES = {
+    manual:{name:'Manual', tag:'PRD as written', desc:'Every photo uploaded online goes to staff. Checks still run and tell the guest to fix obvious problems before submitting.'},
+    assisted:{name:'Assisted', tag:'Recommended', desc:'Photos that pass every check are approved automatically. Staff see only the uncertain ones and a small random sample.'},
+    gate:{name:'Gate check', tag:'Least staff time', desc:'Passes activate on upload. The gate attendant confirms the face matches at the first scan. No back-office queue.'}
+  };
+
+  /* ---------- helpers ---------- */
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ICON = {ok:'✓', warn:'!', bad:'✕', wait:'·'};
+  const fmtDur = s => { s = Math.round(s); if (s < 60) return s + 's'; const m = Math.floor(s / 60), r = s % 60; if (m < 60) return m + 'm ' + String(r).padStart(2, '0') + 's'; return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; };
+  const fmtHrs = s => s >= 3600 ? (s / 3600).toFixed(1) + ' hrs' : Math.max(0, Math.round(s / 60)) + ' min';
+
+  let toastTimer, toastUndo = null;
+  function toast(msg, undo){
+    $('#toastmsg').textContent = msg;
+    const b = $('#toastbtn');
+    toastUndo = undo || null; b.hidden = !undo;
+    $('#toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('#toast').classList.remove('show'), undo ? 6000 : 3200);
+  }
+  $('#toastbtn').addEventListener('click', () => { if (toastUndo) toastUndo(); $('#toast').classList.remove('show'); });
+
+  /* ---------- queue view ---------- */
+  function totals(){
+    const review = S.queue.length, done = S.done.length;
+    const total = S.autoApproved + S.returned + review + done;
+    return {review, done, total};
+  }
+  function staffSecs(){ return S.done.reduce((a, d) => a + d.secs, 0) + (S.spotDone ? 16 : 0); }
+
+  function renderQueue(){
+    const t = totals();
+    $('#qcount').textContent = t.review;
+    $('#qcount').classList.toggle('zero', t.review === 0);
+    const manualSecs = t.total * 20;
+    const projected = staffSecs() + t.review * 8 + (S.spotDone ? 0 : 16);
+    const manualPct = 100, nowPct = Math.max(1.5, projected / manualSecs * 100);
+    const modeNote = S.mode === 'assisted' ? '' :
+      `<div class="why"><b>Showing the Assisted mode queue.</b><span class="muted">You picked ${MODES[S.mode].name} under Settings. In ${S.mode === 'manual' ? 'Manual mode all ' + t.total + ' of today\'s photos would be waiting here' : 'Gate check mode this queue would be empty and photos would be checked at the first scan'}.</span></div>`;
+
+    const tabs = [['review', 'Needs review', t.review], ['spot', 'Spot check', S.spotDone ? '✓' : SPOT.length], ['returned', 'Sent back to guest', S.returned], ['done', 'Done', t.done]];
+    let body = '';
+    if (S.qtab === 'review') body = renderReview();
+    else if (S.qtab === 'spot') body = renderSpot();
+    else if (S.qtab === 'returned') body = renderReturned();
+    else body = renderDone();
+
+    $('#v-queue').innerHTML = `
+      ${modeNote}
+      <div class="stats" aria-label="Today">
+        <div class="stat"><span class="label">Uploaded today</span><span class="n">${t.total}</span><span class="note">Season Pass – Gold &amp; Silver</span></div>
+        <div class="stat"><span class="label">Approved automatically</span><span class="n">${S.autoApproved}</span><span class="note">Passed every check</span></div>
+        <div class="stat"><span class="label">Fixed by the guest</span><span class="n">${S.returned}</span><span class="note">Asked to retake at upload</span></div>
+        <div class="stat"><span class="label">Need you</span><span class="n brand">${t.review}</span><span class="note">Checks weren't sure</span></div>
+        <div class="stat time"><span class="label">Staff time for today's photos</span>
+          <div class="timebar">
+            <div class="tb"><span>Manual</span><div class="track"><div class="fill" style="width:${manualPct}%"></div></div><span>${fmtDur(manualSecs)}</span></div>
+            <div class="tb"><span>Assisted</span><div class="track"><div class="fill now" style="width:${nowPct}%"></div></div><span>${fmtDur(projected)}</span></div>
+          </div>
+          <span class="note">Example: 20s per photo when every photo is reviewed by hand, 8s per flagged photo.</span>
+        </div>
+      </div>
+      <div class="subtabs" role="tablist">${tabs.map(([k, l, c]) => `<button role="tab" data-act="qtab" data-k="${k}" aria-selected="${S.qtab === k}">${l} <span class="c">${c}</span></button>`).join('')}</div>
+      ${body}`;
+  }
+
+  function renderReview(){
+    if (!S.queue.length) {
+      return `<div class="card empty"><span class="big">Queue clear</span><span class="muted">${S.done.length} decisions in ${fmtDur(staffSecs())}. New uploads that need a person will show up here.</span>${S.spotDone ? '' : '<button class="btn" data-act="qtab" data-k="spot">Do today\'s spot check</button>'}</div>`;
+    }
+    S.sel = Math.min(S.sel, S.queue.length - 1);
+    const list = S.queue.map((q, i) => `<li><button class="qitem" data-act="select" data-i="${i}" aria-current="${i === S.sel}">
+        <span class="thumb">${portrait(q.photo, q.name)}</span>
+        <span style="min-width:0;display:grid"><span class="nm">${esc(q.name)}</span><span class="pr">${esc(q.product)} · ${q.mins} min ago</span><span class="flag ${q.sev === 'bad' ? 'bad' : ''}"><span>${esc(q.flag)}</span></span></span>
+      </button></li>`).join('');
+    return `<div class="qgrid"><ol class="qlist" aria-label="Photos that need review">${list}</ol>${renderDetail(S.queue[S.sel])}</div>
+      <div class="keys"><span><kbd>A</kbd> approve</span><span><kbd>D</kbd> deny with selected reasons</span><span><kbd>1</kbd>–<kbd>7</kbd> toggle reasons</span><span><kbd>J</kbd>/<kbd>K</kbd> next/previous</span><span><kbd>Z</kbd> undo</span></div>`;
+  }
+
+  function renderDetail(q){
+    const c = S.crop[q.id], sel = S.reasons[q.id];
+    const big = (p, cap, zoomable) => `<div class="pframe"><div class="bigphoto"><div class="inner" style="transform:scale(${zoomable && !c.orig ? c.zoom : 1})">${portrait(p, cap)}</div>${zoomable && !c.orig ? '<div class="cardframe" aria-hidden="true"></div>' : ''}</div><span class="note">${cap}</span></div>`;
+    let photos;
+    if (q.prev) photos = `<div class="photos pair">${big(q.prev, '2026 · approved', false)}${big(q.photo, 'New upload', true)}</div>`;
+    else if (q.dup) photos = `<div class="photos">${big(q.photo, 'Uploaded for ' + q.name, true)}<div class="why bad" style="font-size:13px"><b>Also uploaded for</b><span>${esc(q.dup)}</span></div></div>`;
+    else photos = `<div class="photos">${big(q.photo, c.orig ? 'Original upload' : 'Auto-cropped to card', true)}</div>`;
+    const cropbar = `<div class="cropbar"><span class="tiny-seg"><button data-act="crop" data-v="auto" aria-pressed="${!c.orig}">Auto-crop</button><button data-act="crop" data-v="orig" aria-pressed="${c.orig}">Original</button></span>${c.orig ? '' : `<label for="zoom" class="faint">Zoom</label><input id="zoom" type="range" min="1" max="2.4" step="0.05" value="${c.zoom}" data-act="zoom">`}</div>`;
+    const chips = REASONS.map((r, i) => `<button class="chip" data-act="reason" data-r="${r.id}" aria-pressed="${sel.has(r.id)}"><kbd>${i + 1}</kbd>${r.label}${q.suggest.includes(r.id) ? ' <span class="sug">suggested</span>' : ''}</button>`).join('');
+    const n = sel.size;
+    return `<article class="card detail" aria-label="Review ${esc(q.name)}">
+      <div class="dhead"><div><span class="label">${S.sel + 1} of ${S.queue.length} · uploaded ${q.mins} min ago</span><h2>${esc(q.name)}</h2></div><span class="pill ${q.sev === 'bad' ? 'bad' : 'warn'}">${esc(q.flag)}</span></div>
+      <div class="dbody">
+        <div style="display:grid;gap:10px;align-content:start">${photos}${cropbar}</div>
+        <div style="display:grid;gap:16px;align-content:start;min-width:0">
+          <div class="why ${q.sev === 'bad' ? 'bad' : ''}"><b>Why you're seeing this</b><span>${esc(q.hint)}</span></div>
+          <ul class="checks">${q.checks.map(([s, l, p]) => `<li><span class="ic ${s}">${ICON[s]}</span><span>${l}</span><span class="pct">${p || ''}</span></li>`).join('')}</ul>
+          <dl class="ctx"><dt>Membership</dt><dd>${esc(q.product)}</dd><dt>Member</dt><dd>${esc(q.age)}</dd><dt>Order</dt><dd>${q.order}</dd><dt>Household</dt><dd>${esc(q.household)}</dd><dt>Uploaded by</dt><dd>${esc(q.by)}</dd></dl>
+        </div>
+      </div>
+      <div style="display:grid;gap:8px"><span class="label">Denial reasons · the guest sees your wording for each</span><div class="reasons">${chips}</div></div>
+      <div class="actions">
+        <button class="btn ok" data-act="approve">Approve <kbd>A</kbd></button>
+        <button class="btn danger" data-act="deny" id="denybtn">${n ? `Deny · ${n} reason${n > 1 ? 's' : ''}` : 'Deny'} <kbd>D</kbd></button>
+        <span class="note">${n ? 'Guest gets an email with the reason and a link to retake.' : 'Pick a reason to deny.'}</span>
+      </div>
+    </article>`;
+  }
+
+  function renderSpot(){
+    const flagged = Object.values(S.spotFlags).filter(Boolean).length;
+    if (S.spotDone) return `<div class="card empty"><span class="big">Today's sample is confirmed</span><span class="muted">${SPOT.length} of ${S.autoApproved + 1} automatic approvals checked. Tomorrow's sample is picked at random.</span></div>`;
+    return `<div style="display:grid;gap:6px"><h2>Spot-check automatic approvals</h2><p class="muted" style="margin:0;max-width:70ch">A random ${S.settings.spot}% of today's automatic approvals. Glance at them and flag any that look wrong. Flagged photos move to Needs review and the miss is counted against the check, so you can see how accurate the checks are.</p></div>
+      <div class="spotgrid">${SPOT.map(([n, p], i) => `<div class="spot" data-flagged="${!!S.spotFlags[i]}"><div class="thumb">${portrait(p, n)}</div><span class="nm">${n}</span><button class="btn small ${S.spotFlags[i] ? 'danger' : ''}" data-act="spotflag" data-i="${i}">${S.spotFlags[i] ? 'Flagged' : 'Looks wrong'}</button></div>`).join('')}</div>
+      <div class="actions"><button class="btn primary" data-act="spotconfirm">Confirm sample · ${SPOT.length - flagged} OK${flagged ? `, ${flagged} flagged` : ''}</button><span class="note">About 2 seconds per photo.</span></div>`;
+  }
+
+  function renderReturned(){
+    return `<div style="display:grid;gap:6px"><h2>Sent back to the guest automatically</h2><p class="muted" style="margin:0;max-width:70ch">These failed a check with high confidence. The guest was shown what to fix on the upload screen. Staff never had to look at them, and there was no denial email.</p></div>
+      <div class="tablewrap"><table><thead><tr><th>Member</th><th>Check that failed</th><th>What happened next</th></tr></thead><tbody>
+      ${RETURNED.map(([n, r, w, s]) => `<tr><td>${n}</td><td>${r}</td><td><span class="pill ${s}">${w}</span></td></tr>`).join('')}
+      </tbody></table></div><span class="note">Showing 5 of ${S.returned}.</span>`;
+  }
+
+  function renderDone(){
+    if (!S.done.length) return `<div class="card empty"><span class="big">Nothing yet</span><span class="muted">Approve or deny a photo in Needs review and it will show here.</span></div>`;
+    const avg = S.done.reduce((a, d) => a + d.secs, 0) / S.done.length;
+    return `<div class="tablewrap"><table><thead><tr><th>Member</th><th>Decision</th><th>Reasons sent to guest</th><th>Time</th></tr></thead><tbody>
+      ${S.done.slice().reverse().map(d => `<tr><td>${esc(d.item.name)}</td><td><span class="pill ${d.kind === 'approve' ? 'ok' : 'bad'}">${d.kind === 'approve' ? 'Approved · pass active' : 'Denied · email sent'}</span></td><td>${d.reasons.map(r => R[r].label).join(', ') || '–'}</td><td class="num">${fmtDur(d.secs)}</td></tr>`).join('')}
+      </tbody></table></div><span class="note">Average ${fmtDur(avg)} per decision.</span>`;
+  }
+
+  function decide(kind){
+    const q = S.queue[S.sel]; if (!q) return;
+    const reasons = [...S.reasons[q.id]];
+    if (kind === 'deny' && !reasons.length) {
+      const b = $('#denybtn'); if (b) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+      toast('Pick at least one reason first (keys 1–7).');
+      return;
+    }
+    const secs = Math.min(60, Math.max(2, (performance.now() - S.shownAt) / 1000));
+    const idx = S.sel;
+    S.queue.splice(idx, 1);
+    S.done.push({item:q, kind, reasons: kind === 'deny' ? reasons : [], secs, idx});
+    S.shownAt = performance.now();
+    renderQueue();
+    toast(kind === 'approve' ? `Approved ${q.name}. Pass is active.` : `Denied ${q.name}. Email sent: ${reasons.map(r => R[r].label).join(', ')}.`, undo);
+  }
+  function undo(){
+    const d = S.done.pop(); if (!d) return;
+    S.queue.splice(Math.min(d.idx, S.queue.length), 0, d.item);
+    S.sel = Math.min(d.idx, S.queue.length - 1);
+    S.qtab = 'review'; S.shownAt = performance.now();
+    renderQueue();
+    toast(`Undone. ${d.item.name} is back in the queue.`);
+  }
+
+  /* ---------- guest view ---------- */
+  const STATUS = {
+    approved:['ok', 'Active'], awaiting:['idle', 'Needs a photo'], denied:['bad', 'Retake needed'],
+    review:['info', 'In review'], provisional:['ok', 'Active · checked at first visit']
+  };
+  function memberRow(m, clickable){
+    const [cls, lab] = STATUS[m.status];
+    const ph = m.photo ? portrait(m.photo, m.name) : '<span class="ph-empty" aria-hidden="true">+</span>';
+    const tag = clickable ? 'button' : 'div';
+    return `<${tag} class="member" ${clickable ? `data-act="g-open" data-id="${m.id}"` : ''}><span class="thumb">${ph}</span><span style="min-width:0;display:grid"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</b><span class="note">${esc(m.role)}</span></span><span class="pill ${cls}">${lab}</span></${tag}>`;
+  }
+  function renderGuest(){
+    const g = S.guest;
+    let screen = '';
+    if (g.screen === 'home') {
+      const todo = g.members.filter(m => m.status === 'awaiting' || m.status === 'denied').length;
+      screen = `<div class="sbody">
+        <div><span class="label">My memberships</span><h2 style="margin-top:4px">Rivera household</h2></div>
+        <p class="muted" style="margin:0">${todo ? `${todo} member${todo > 1 ? 's need' : ' needs'} a photo before ${todo > 1 ? 'their passes work' : 'their pass works'}. You can add photos for anyone on your order.` : 'Everyone is set for their first visit.'}</p>
+        ${g.members.map(m => memberRow(m, m.status === 'awaiting' || m.status === 'denied')).join('')}
+        <span class="note">Tap a member who needs a photo.</span>
+      </div>`;
+    } else {
+      const m = g.members.find(x => x.id === g.active);
+      let inner;
+      if (!g.checking) {
+        const denied = m.status === 'denied' ? `<div class="result bad"><h3>Sam's photo needs a retake</h3><span>${R[m.reason].guest}</span></div>` : '';
+        inner = `${denied}
+          <div class="guide"><span class="ph-empty" style="border:0;border-radius:0">📷</span><div class="oval" aria-hidden="true"></div></div>
+          <p class="note" style="margin:0;text-align:center">Head and shoulders in the oval · no sunglasses or hats · face a light</p>
+          <span class="label">Prototype: pick a sample photo to upload</span>
+          <div class="samples">${SAMPLES.map(s => `<button class="sample" data-act="g-pick" data-k="${s.key}"><span class="thumb">${portrait(s.photo, s.label)}</span>${s.label}</button>`).join('')}</div>`;
+      } else {
+        const s = g.checking;
+        const rows = GUEST_CHECKS.map((c, i) => {
+          let st = 'wait';
+          if (i < g.step) st = (s.fail === i) ? 'bad' : (s.unsure && i === 4 ? 'ok' : 'ok');
+          return `<li><span class="ic ${st}">${ICON[st]}</span><span>${c}</span><span></span></li>`;
+        }).join('') + (s.unsure && g.step >= 5 ? `<li><span class="ic warn">!</span><span>No head covering</span><span class="pct">unsure</span></li>` : '');
+        let res = '';
+        if (g.result === 'retake') res = `<div class="result bad"><h3>Fix one thing before you submit</h3><span>${R[s.reason].guest}</span></div><button class="btn primary" data-act="g-again">Choose another photo</button>`;
+        else if (g.result === 'approved') res = `<div class="result ok"><h3>You're all set</h3><span>${esc(m.name.split(' ')[0])}'s pass is active. Approved automatically because the photo passed every check.</span></div><button class="btn" data-act="g-home">Back to my memberships</button>`;
+        else if (g.result === 'review') res = `<div class="result warn"><h3>Submitted for a quick look</h3><span>${s.unsure ? 'We weren\'t sure about the cap, so a staff member will check it.' : 'A staff member checks every photo.'} Most photos are reviewed within a few hours. We'll email you.</span></div><button class="btn" data-act="g-home">Back to my memberships</button>`;
+        else if (g.result === 'provisional') res = `<div class="result ok"><h3>Pass active</h3><span>Show your pass at the gate. On your first visit the attendant will check that the photo matches.</span></div><button class="btn" data-act="g-home">Back to my memberships</button>`;
+        inner = `<div class="guide">${portrait(s.photo, s.label)}</div><ul class="checks" aria-live="polite">${rows}</ul>${res}`;
+      }
+      screen = `<div class="sbody"><button class="back" data-act="g-home">‹ Back</button><div><span class="label">Photo for</span><h2 style="margin-top:4px">${esc(m.name)}</h2></div>${inner}</div>`;
+    }
+
+    const sam = g.members.find(x => x.id === 'g3');
+    const email = sam.status === 'denied' ? `
+      <div class="card email" aria-label="Denial email preview">
+        <div class="hdr"><span class="label">Denial email · sent only for staff denials</span><b>Sam's season pass photo needs a retake</b><span class="faint">From Lagoon · to alex.rivera@example.com</span></div>
+        <div class="bd">
+          <span>Hi Alex, we couldn't approve the photo for Sam's Season Pass – Gold 2027.</span>
+          <div class="reasonbox"><b>${R[sam.reason].label}.</b> ${R[sam.reason].guest}</div>
+          <span>It takes a minute to fix. The link opens the photo step for Sam's pass, so you won't need to sign in again.</span>
+          <button class="btn primary" data-act="g-open" data-id="g3" style="justify-self:start">Upload a new photo for Sam</button>
+        </div>
+      </div>` : `<div class="card panel"><h3>Sam's photo is fixed</h3><span class="muted">The denial email link took you straight to Sam's photo step.</span></div>`;
+
+    $('#v-guest').innerHTML = `<div class="guestgrid">
+      <div class="phone"><div class="screen"><div class="sbar"><span class="park">Lagoon</span><span class="note">My Account</span></div>${screen}</div></div>
+      <div class="side">
+        <div class="explain"><h2>Bad photos get fixed before they're submitted</h2>
+          <ol>
+            <li>Checks run in the guest's browser as soon as they choose a photo. The photo isn't sent to another service.</li>
+            <li>A clear failure (no face, sunglasses, dark, blurry, two people) shows the fix right away. Nothing reaches staff.</li>
+            <li>A photo that passes every check is approved straight away in Assisted mode.</li>
+            <li>A photo the checks aren't sure about (the baseball cap sample) goes to staff.</li>
+          </ol>
+          <p class="note" style="margin:0">Current mode: <b>${MODES[S.mode].name}</b>. Change it under Settings to see the guest experience in each mode.</p>
+        </div>
+        ${email}
+      </div></div>`;
+  }
+
+  function runCheck(sample){
+    const g = S.guest;
+    g.checking = sample; g.step = 0; g.result = null;
+    renderGuest();
+    const tick = () => {
+      g.step++;
+      const failed = sample.fail !== undefined && g.step > sample.fail;
+      if (failed || g.step >= GUEST_CHECKS.length + (sample.unsure ? 1 : 0)) {
+        if (failed) g.step = sample.fail + 1;
+        const m = g.members.find(x => x.id === g.active);
+        if (failed) g.result = 'retake';
+        else {
+          if (S.mode === 'gate') g.result = 'provisional';
+          else if (S.mode === 'manual' || sample.unsure) g.result = 'review';
+          else g.result = 'approved';
+          m.photo = sample.photo;
+          m.status = g.result === 'approved' ? 'approved' : g.result;
+          delete m.reason;
+        }
+        renderGuest(); renderGate();
+        return;
+      }
+      renderGuest();
+      setTimeout(tick, 220);
+    };
+    setTimeout(tick, 260);
+  }
+
+  /* ---------- gate view ---------- */
+  function renderGate(){
+    const all = [...S.guest.members, ...S.gateExtra];
+    const m = all.find(x => x.id === S.gate.sel);
+    let res;
+    if (!m) res = `<div class="empty"><span class="big">Ready to scan</span><span class="muted">Pick a pass on the left to simulate a scan.</span></div>`;
+    else {
+      const ph = m.photo ? portrait(m.photo, m.name) : '<span class="ph-empty" aria-hidden="true">?</span>';
+      let banner, act = '';
+      if (m.status === 'approved') banner = `<div class="banner ok"><span class="big">Admit</span><p>${esc(m.product)} · photo approved${S.gate.note ? ' · ' + S.gate.note : ''}</p></div>`;
+      else if (m.status === 'provisional') {
+        banner = `<div class="banner info"><span class="big">First visit: check the photo</span><p>This photo was uploaded online and hasn't been seen by staff. Does it match the guest in front of you?</p></div>`;
+        act = `<div class="actions"><button class="btn ok" data-act="gate-match">Matches · admit</button><button class="btn danger" data-act="gate-nomatch">Doesn't match</button></div>`;
+      } else {
+        const why = {awaiting:'No photo has been uploaded yet.', denied:'The online photo was denied (' + (m.reason ? R[m.reason].label.toLowerCase() : 'see notes') + ') and no new one has been uploaded.', review:'The photo was uploaded and is waiting for staff review.'}[m.status];
+        banner = `<div class="banner warn"><span class="big">Photo not yet approved</span><p>${why} Take a photo now to activate the pass and admit.</p></div>`;
+        act = `<div class="actions"><button class="btn primary" data-act="gate-capture">Take photo now</button><span class="note">Photos taken in person skip review.</span></div>`;
+      }
+      res = `${banner}<div class="scanrow"><span class="thumb ${S.gate.flash ? 'flash' : ''}">${ph}</span><dl class="ctx"><dt>Member</dt><dd><b>${esc(m.name)}</b></dd><dt>Type</dt><dd>${esc(m.role)}</dd><dt>Pass</dt><dd>${esc(m.product)}</dd><dt>Status</dt><dd><span class="pill ${STATUS[m.status][0]}">${STATUS[m.status][1]}</span></dd></dl></div>${act}`;
+    }
+    $('#v-gate').innerHTML = `<div style="display:grid;gap:6px"><h2>Gate &amp; POS scan</h2><p class="muted" style="margin:0;max-width:70ch">A pass without an approved photo shows why it can't be used, instead of a generic invalid error. The attendant can fix it on the spot. Changes here also update the guest's My Account view.</p></div>
+      <div class="gategrid">
+        <div class="scanlist"><span class="label">Simulate a scan</span>${all.map(x => `<button class="member" data-act="gate-scan" data-id="${x.id}" ${x.id === S.gate.sel ? 'style="border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)"' : ''}><span class="thumb">${x.photo ? portrait(x.photo, x.name) : '<span class="ph-empty" aria-hidden="true">+</span>'}</span><span style="min-width:0;display:grid"><b>${esc(x.name)}</b><span class="note">${esc(x.product)}</span></span><span class="pill ${STATUS[x.status][0]}">${STATUS[x.status][1]}</span></button>`).join('')}</div>
+        <div class="card scanres" aria-live="polite">${res}</div>
+      </div>`;
+    S.gate.flash = false;
+  }
+
+  /* ---------- settings view ---------- */
+  function estimate(){
+    const N = Math.max(0, +S.settings.weekly || 0), spot = S.settings.spot / 100;
+    return {
+      manual: N * 0.87 * 20,
+      assisted: N * 0.05 * 8 + N * 0.82 * spot * 2,
+      gate: 0,
+      gateFront: N * 0.87 * 2
+    };
+  }
+  function renderEstimate(){
+    const e = estimate(), max = Math.max(e.manual, 1);
+    const bar = (k, label, secs, extra) => `<div class="estbar ${S.mode === k ? 'cur' : ''}"><div class="lab"><span>${label}</span><b>${fmtHrs(secs)}</b></div><div class="track"><div class="fill" style="width:${Math.max(secs ? 1 : 0, secs / max * 100)}%"></div></div>${extra ? `<span class="note">${extra}</span>` : ''}</div>`;
+    $('#estbars').innerHTML = bar('manual', 'Manual', e.manual) + bar('assisted', 'Assisted', e.assisted, `Includes the ${S.settings.spot}% spot check.`) + bar('gate', 'Gate check', e.gate, `Plus about ${fmtHrs(e.gateFront)} spread across first-visit scans.`);
+  }
+  function renderSettings(){
+    const st = S.settings;
+    const checkRows = [
+      ['Face found', 'Ask guest to retake', 'Send to staff'],
+      ['Only one person', 'Ask guest to retake', 'Send to staff'],
+      ['Eyes visible (no sunglasses)', 'Ask guest to retake', 'Send to staff'],
+      ['Lighting', 'Ask guest to retake', 'Approve'],
+      ['Sharpness', 'Ask guest to retake', 'Send to staff'],
+      ['No head covering', 'Send to staff', 'Send to staff'],
+      ['Photo not used on another membership', 'Send to staff', 'Send to staff'],
+      ['Matches previous approved photo', 'Send to staff', 'Approve']
+    ];
+    const opts = ['Ask guest to retake', 'Send to staff', 'Approve', 'Ignore'];
+    const sel = (id, v) => `<select id="${id}" aria-label="${id}">${opts.map(o => `<option${o === v ? ' selected' : ''}>${o}</option>`).join('')}</select>`;
+    $('#v-settings').innerHTML = `<div style="display:grid;gap:6px"><span class="label">Membership product</span><h2>Season Pass – Gold 2027</h2></div>
+      <div class="setgrid">
+        <div style="display:grid;gap:16px;min-width:0">
+          <div class="card panel">
+            <div class="row"><div><h3>Require photo validation</h3><span class="muted">Available because this product already requires a photo. Off by default for new products.</span></div><label class="switch"><input type="checkbox" id="s-val" ${st.validation ? 'checked' : ''} aria-label="Require photo validation"><span></span></label></div>
+          </div>
+          <div class="card panel">
+            <div><h3>How photos get approved</h3><span class="muted">You can change this at any time. Photos already approved stay approved.</span></div>
+            <div class="modes" role="radiogroup" aria-label="Review mode">${Object.entries(MODES).map(([k, m]) => `<label class="mode"><input type="radio" name="mode" value="${k}" ${S.mode === k ? 'checked' : ''}><span class="t">${m.name} <span class="tag ${k === 'assisted' ? 'rec' : ''}">${m.tag}</span></span><p>${m.desc}</p></label>`).join('')}</div>
+            <div class="row" ${S.mode === 'assisted' ? '' : 'hidden'}><div><b>Spot-check sample</b><br><span class="muted">Share of automatic approvals shown to staff each day.</span></div><div style="display:flex;gap:8px;align-items:center;min-width:150px"><input type="range" id="s-spot" min="0" max="20" step="1" value="${st.spot}" style="flex:1"><b id="s-spotv" style="font-variant-numeric:tabular-nums;width:34px;text-align:right">${st.spot}%</b></div></div>
+          </div>
+          <div class="card panel">
+            <div><h3>Automatic checks</h3><span class="muted">Choose what happens when a check clearly fails or isn't sure. "Ask guest to retake" happens on the upload screen, before anything is submitted.</span></div>
+            <div class="tablewrap" style="border:0"><table style="min-width:520px"><thead><tr><th>Check</th><th>Clear fail</th><th>Not sure</th></tr></thead><tbody>
+              ${checkRows.map(([c, f, u], i) => `<tr><td>${c}</td><td>${sel('fail-' + i, f)}</td><td>${sel('unsure-' + i, u)}</td></tr>`).join('')}
+            </tbody></table></div>
+          </div>
+          <div class="card panel">
+            <div class="row"><div><h3>Auto-crop to card frame</h3><span class="muted">Staff can still adjust the crop in the queue.</span></div><label class="switch"><input type="checkbox" id="s-crop" ${st.autocrop ? 'checked' : ''} aria-label="Auto-crop"><span></span></label></div>
+            <div class="row"><div><h3>Reuse approved photos</h3><span class="muted">Use a member's approved photo for renewals and their other memberships until it is 3 years old.</span></div><label class="switch"><input type="checkbox" id="s-reuse" ${st.reuse ? 'checked' : ''} aria-label="Reuse approved photos"><span></span></label></div>
+          </div>
+          <div class="card panel">
+            <div><h3>Denial reasons</h3><span class="muted">Starts with the RocketRez default list. Edit the wording guests see, or add your own standards.</span></div>
+            <div class="tablewrap" style="border:0"><table style="min-width:560px"><thead><tr><th style="width:30%">Reason (staff see)</th><th>Guest sees</th></tr></thead><tbody>
+              ${REASONS.map(r => `<tr><td><input type="text" id="rl-${r.id}" value="${esc(r.label)}" aria-label="Reason label"></td><td><input type="text" id="rg-${r.id}" value="${esc(r.guest)}" aria-label="Guest wording"></td></tr>`).join('')}
+            </tbody></table></div>
+          </div>
+        </div>
+        <aside class="card est" aria-label="Staff time estimate">
+          <div><h3>Staff time per week</h3><span class="muted">Example estimate for this product.</span></div>
+          <label for="s-weekly" class="label">Photos uploaded online per week</label>
+          <input type="number" id="s-weekly" min="0" step="100" value="${st.weekly}">
+          <div id="estbars" style="display:grid;gap:14px"></div>
+          <span class="note">Assumptions: 13% of uploads are fixed by the guest at upload, 5% need staff in Assisted mode, 20s per manual review, 8s per flagged photo, 2s per spot-check or gate confirmation.</span>
+        </aside>
+      </div>`;
+    renderEstimate();
+  }
+
+  function setMode(m){
+    S.mode = m;
+    $('#modelabel').textContent = MODES[m].name;
+    renderQueue(); renderGuest();
+  }
+
+  /* ---------- view switching ---------- */
+  const VIEWS = ['queue', 'guest', 'gate', 'settings', 'changes'];
+  function show(v){
+    if (!VIEWS.includes(v)) v = 'queue';
+    S.view = v;
+    VIEWS.forEach(k => { $('#v-' + k).hidden = k !== v; });
+    document.querySelectorAll('#viewtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.view === v));
+    if (v === 'queue') { S.shownAt = performance.now(); renderQueue(); }
+    if (v === 'guest') renderGuest();
+    if (v === 'gate') renderGate();
+    if (v === 'settings') renderSettings();
+  }
+
+  document.addEventListener('click', e => {
+    const tab = e.target.closest('#viewtabs button');
+    if (tab) { show(tab.dataset.view); try { history.replaceState(null, '', '#' + tab.dataset.view); } catch (_) {} return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const act = a.dataset.act, q = S.queue[S.sel];
+    switch (act) {
+      case 'qtab': S.qtab = a.dataset.k; renderQueue(); break;
+      case 'select': S.sel = +a.dataset.i; S.shownAt = performance.now(); renderQueue(); break;
+      case 'crop': S.crop[q.id].orig = a.dataset.v === 'orig'; renderQueue(); break;
+      case 'reason': { const s = S.reasons[q.id], r = a.dataset.r; s.has(r) ? s.delete(r) : s.add(r); renderQueue(); break; }
+      case 'approve': decide('approve'); break;
+      case 'deny': decide('deny'); break;
+      case 'spotflag': S.spotFlags[a.dataset.i] = !S.spotFlags[a.dataset.i]; renderQueue(); break;
+      case 'spotconfirm': {
+        const flagged = Object.keys(S.spotFlags).filter(k => S.spotFlags[k]).map(Number);
+        flagged.forEach(i => {
+          const [n, p] = SPOT[i], id = 'sp' + i;
+          const item = {id, name:n, age:'Adult', product:'Season Pass – Gold 2027', order:'RR-4186' + (10 + i), household:'From spot check', by:n, mins:90, photo:p, flag:'Flagged in spot check', sev:'warn', hint:'You flagged this automatic approval. The pass stays active until you decide.', checks:[['ok','Face found'],['ok','One person'],['ok','Eyes visible'],['ok','Lighting'],['ok','Sharpness']], suggest:[]};
+          S.queue.push(item); S.reasons[id] = new Set(); S.crop[id] = {orig:false, zoom:1.15};
+          S.autoApproved--;
+        });
+        S.spotDone = true; renderQueue();
+        toast(flagged.length ? `Sample confirmed. ${flagged.length} photo${flagged.length > 1 ? 's' : ''} moved to Needs review.` : 'Sample confirmed. All automatic approvals looked right.');
+        break;
+      }
+      case 'g-open': S.guest.screen = 'upload'; S.guest.active = a.dataset.id; S.guest.checking = null; S.guest.result = null; show('guest'); try { history.replaceState(null, '', '#guest'); } catch (_) {} break;
+      case 'g-home': S.guest.screen = 'home'; S.guest.checking = null; renderGuest(); break;
+      case 'g-again': S.guest.checking = null; S.guest.result = null; renderGuest(); break;
+      case 'g-pick': runCheck(SAMPLES.find(s => s.key === a.dataset.k)); break;
+      case 'gate-scan': S.gate.sel = a.dataset.id; S.gate.note = null; renderGate(); break;
+      case 'gate-capture': case 'gate-match': {
+        const m = [...S.guest.members, ...S.gateExtra].find(x => x.id === S.gate.sel);
+        if (act === 'gate-capture') { m.photo = m.photo && m.status === 'review' ? m.photo : SAMPLES[0].photo; S.gate.flash = true; S.gate.note = 'photo taken at the gate'; }
+        else S.gate.note = 'confirmed at first visit';
+        m.status = 'approved'; delete m.reason;
+        renderGate();
+        toast(act === 'gate-capture' ? `Photo saved. ${m.name}'s pass is active.` : `${m.name} admitted. Photo marked as approved.`);
+        break;
+      }
+      case 'gate-nomatch': {
+        const m = [...S.guest.members, ...S.gateExtra].find(x => x.id === S.gate.sel);
+        m.status = 'awaiting'; m.photo = null; renderGate();
+        toast('Online photo removed. Take a new photo to admit.');
+        break;
+      }
+    }
+  });
+
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.id === 'zoom') { const q = S.queue[S.sel]; S.crop[q.id].zoom = +t.value; const inner = t.closest('.detail').querySelectorAll('.bigphoto .inner'); inner[inner.length - 1].style.transform = `scale(${t.value})`; return; }
+    if (t.id === 's-spot') { S.settings.spot = +t.value; $('#s-spotv').textContent = t.value + '%'; renderEstimate(); return; }
+    if (t.id === 's-weekly') { S.settings.weekly = +t.value; renderEstimate(); return; }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.name === 'mode') { setMode(t.value); renderSettings(); }
+    if (t.id === 's-val') { S.settings.validation = t.checked; toast(t.checked ? 'Photo validation on for Season Pass – Gold 2027.' : 'Photo validation off. Uploaded photos are accepted without review.'); }
+    if (t.id === 's-crop') S.settings.autocrop = t.checked;
+    if (t.id === 's-reuse') S.settings.reuse = t.checked;
+    if (t.id && (t.id.startsWith('rl-') || t.id.startsWith('rg-'))) {
+      const r = R[t.id.slice(3)]; if (t.id.startsWith('rl-')) r.label = t.value; else r.guest = t.value;
+      toast('Reason saved.');
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (S.view !== 'queue' || S.qtab !== 'review') return;
+    if (e.target.closest('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase(), q = S.queue[S.sel];
+    if (k === 'z') { undo(); e.preventDefault(); return; }
+    if (!q) return;
+    if (k === 'a') decide('approve');
+    else if (k === 'd') decide('deny');
+    else if (k === 'j' || k === 'arrowdown') { S.sel = Math.min(S.queue.length - 1, S.sel + 1); S.shownAt = performance.now(); renderQueue(); }
+    else if (k === 'k' || k === 'arrowup') { S.sel = Math.max(0, S.sel - 1); S.shownAt = performance.now(); renderQueue(); }
+    else if (/^[1-7]$/.test(k)) { const r = REASONS[+k - 1].id, s = S.reasons[q.id]; s.has(r) ? s.delete(r) : s.add(r); renderQueue(); }
+    else return;
+    e.preventDefault();
+  });
+
+  let start = 'queue';
+  try { const h = location.hash.slice(1); if (VIEWS.includes(h)) start = h; } catch (_) {}
+  renderQueue();
+  show(start);
+})();
+</script>
