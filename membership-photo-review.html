@@ -109,7 +109,18 @@
   .flag span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .thumb{border-radius:8px;overflow:hidden;background:var(--photo-bg);position:relative}
-  .thumb svg{display:block;width:100%;height:100%}
+  .thumb svg,.thumb img,.bigphoto img,.guide img{display:block;width:100%;height:100%;object-fit:cover}
+  .uploadrow{display:grid;gap:8px}
+  .uploadrow .btn{justify-content:center}
+  .scripted summary{cursor:pointer;color:var(--ink-dim);font-size:13px}
+  .scripted[open] summary{margin-bottom:10px}
+  .metrics summary{cursor:pointer;font-size:12px;color:var(--ink-faint)}
+  .metrics dl{display:grid;grid-template-columns:auto auto;justify-content:start;gap:2px 14px;margin:8px 0 0;font-family:var(--mono);font-size:11px;color:var(--ink-dim)}
+  .metrics dd{margin:0;font-variant-numeric:tabular-nums}
+  .loading{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--ink-dim)}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--brand);animation:spin .8s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .real{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);background:var(--ok-soft);border-radius:4px;padding:1px 6px}
   .detail{padding:20px;display:grid;gap:18px}
   .dhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:baseline;justify-content:space-between}
   .dhead h2{font-size:22px}
@@ -379,6 +390,7 @@
   }
   function portrait(p, alt){
     p = p || {};
+    if (p.img) return `<img src="${p.img}" alt="${esc(alt || 'Member photo')}">`;
     const id = 'pf' + (++fid);
     const o = {skin:p.skin || '#E0AC69', hair:p.hair || '#3B2A1A', shirt:p.shirt || '#3D5A80', style:p.style, glasses:p.glasses, hat:p.hat};
     let people = '';
@@ -401,7 +413,7 @@
     {id:'hat', label:'Hat or face covering', guest:'Please remove hats or anything covering your face. Religious head coverings are fine.'},
     {id:'dark', label:'Too dark', guest:'Your photo is too dark. Try facing a window or a lamp.'},
     {id:'blur', label:'Blurry', guest:'Your photo is blurry. Hold your phone steady and tap your face to focus.'},
-    {id:'frame', label:'Face too small', guest:'Move closer so your head and shoulders fill the frame.'},
+    {id:'frame', label:'Face too small or turned', guest:'Face the camera and move closer so your head and shoulders fill the frame.'},
     {id:'person', label:'Not the member', guest:'The photo must show the person named on this membership.'},
     {id:'group', label:'More than one person', guest:'Only the member should be in the photo.'}
   ];
@@ -572,7 +584,7 @@
 
   function renderDetail(q){
     const c = S.crop[q.id], sel = S.reasons[q.id];
-    const big = (p, cap, zoomable) => `<div class="pframe"><div class="bigphoto"><div class="inner" style="transform:scale(${zoomable && !c.orig ? c.zoom : 1})">${portrait(p, cap)}</div>${zoomable && !c.orig ? '<div class="cardframe" aria-hidden="true"></div>' : ''}</div><span class="note">${cap}</span></div>`;
+    const big = (p, cap, zoomable) => `<div class="pframe"><div class="bigphoto"><div class="inner" style="transform:scale(${zoomable && !c.orig ? c.zoom : 1})">${portrait(p.img && c.orig && p.orig ? {img:p.orig} : p, cap)}</div>${zoomable && !c.orig ? '<div class="cardframe" aria-hidden="true"></div>' : ''}</div><span class="note">${cap}</span></div>`;
     let photos;
     if (q.prev) photos = `<div class="photos pair">${big(q.prev, '2026 · approved', false)}${big(q.photo, 'New upload', true)}</div>`;
     else if (q.dup) photos = `<div class="photos">${big(q.photo, 'Uploaded for ' + q.name, true)}<div class="why bad" style="font-size:13px"><b>Also uploaded for</b><span>${esc(q.dup)}</span></div></div>`;
@@ -581,7 +593,7 @@
     const chips = REASONS.map((r, i) => `<button class="chip" data-act="reason" data-r="${r.id}" aria-pressed="${sel.has(r.id)}"><kbd>${i + 1}</kbd>${r.label}${q.suggest.includes(r.id) ? ' <span class="sug">suggested</span>' : ''}</button>`).join('');
     const n = sel.size;
     return `<article class="card detail" aria-label="Review ${esc(q.name)}">
-      <div class="dhead"><div><span class="label">${S.sel + 1} of ${S.queue.length} · uploaded ${q.mins} min ago</span><h2>${esc(q.name)}</h2></div><span class="pill ${q.sev === 'bad' ? 'bad' : 'warn'}">${esc(q.flag)}</span></div>
+      <div class="dhead"><div><span class="label">${S.sel + 1} of ${S.queue.length} · uploaded ${q.mins} min ago</span><h2>${esc(q.name)}${q.real ? ' <span class="real">Real upload</span>' : ''}</h2></div><span class="pill ${q.sev === 'bad' ? 'bad' : 'warn'}">${esc(q.flag)}</span></div>
       <div class="dbody">
         <div style="display:grid;gap:10px;align-content:start">${photos}${cropbar}</div>
         <div style="display:grid;gap:16px;align-content:start;min-width:0">
@@ -647,6 +659,172 @@
     toast(`Undone. ${d.item.name} is back in the queue.`);
   }
 
+  /* ---------- real photo checks (face-api, runs in the browser) ---------- */
+  const FACEAPI_SRC = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js';
+  const MODEL_URL = 'models';
+  // Thresholds tuned on a small set of test photos; treat as a starting point.
+  const T = {
+    minScore:.45, otherFace:.2,
+    faceBad:70, faceWarn:110,
+    yawBad:.32, yawWarn:.2, rollWarn:18,
+    lumBad:[50, 235], lumWarn:[72, 220],
+    sharpBad:28, sharpWarn:55,
+    eyeBad:.4, eyeSdBad:18, eyeWarn:.5, eyeSdWarn:26, eyeDark:.4,
+    hatWarn:65, imageDark:50
+  };
+  let faceReady = null;
+  function loadFace(){
+    if (faceReady) return faceReady;
+    faceReady = (window.faceapi ? Promise.resolve() : new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = FACEAPI_SRC; s.onload = res; s.onerror = () => rej(new Error('Face detection script did not load'));
+      document.head.appendChild(s);
+    })).then(async () => {
+      // The default wasm backend fetches extra files from the CDN, which the artifact sandbox blocks.
+      const tf = faceapi.tf;
+      let ok = false;
+      try { ok = await tf.setBackend('webgl'); } catch (_) {}
+      if (!ok) await tf.setBackend('cpu');
+      await tf.ready();
+      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    });
+    faceReady.catch(() => { faceReady = null; });
+    return faceReady;
+  }
+  function fileToCanvas(file){
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const sc = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); res(c);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('That file isn\'t an image we can read. Try a JPG or PNG.')); };
+      img.src = url;
+    });
+  }
+  async function analyzePhoto(cv){
+    await loadFace();
+    const W = cv.width, H = cv.height;
+    const px = cv.getContext('2d', {willReadFrequently:true}).getImageData(0, 0, W, H).data;
+    const stats = (x, y, w, h) => {
+      const x1 = Math.max(0, Math.round(x)), y1 = Math.max(0, Math.round(y));
+      const x2 = Math.min(W, Math.round(x + w)), y2 = Math.min(H, Math.round(y + h));
+      let n = 0, s = 0, s2 = 0, r = 0, g = 0, b = 0;
+      for (let j = y1; j < y2; j++) for (let i = x1; i < x2; i++) {
+        const k = (j * W + i) * 4, L = .299 * px[k] + .587 * px[k + 1] + .114 * px[k + 2];
+        s += L; s2 += L * L; r += px[k]; g += px[k + 1]; b += px[k + 2]; n++;
+      }
+      if (!n) return null;
+      const m = s / n;
+      return {m, sd:Math.sqrt(Math.max(0, s2 / n - m * m)), r:r / n, g:g / n, b:b / n, n};
+    };
+    const out = {checks:[], metrics:{}, crop:null, orig:cv.toDataURL('image/jpeg', .82)};
+    const add = (key, label, status, value, guest, reason) => out.checks.push({key, label, status, value:value || '', guest, reason});
+    const dets = await faceapi.detectAllFaces(cv, new faceapi.SsdMobilenetv1Options({minConfidence:T.minScore})).withFaceLandmarks();
+    out.metrics.backend = faceapi.tf.getBackend();
+    out.metrics['faces detected'] = dets.length;
+    if (!dets.length) {
+      // Dark or blurry photos usually fail here, so point the guest at the likely cause.
+      const all = stats(0, 0, W, H);
+      out.metrics['image brightness'] = all.m.toFixed(0);
+      const msg = all.m < T.imageDark ? 'We couldn\'t find a face, probably because the photo is too dark. Try facing a window or a lamp.'
+        : 'We couldn\'t find a face. Use a sharp, front-facing photo where your head and shoulders fill most of the frame.';
+      add('face', 'Face found', 'bad', 'none', msg, all.m < T.imageDark ? 'dark' : 'frame');
+      return out;
+    }
+    dets.sort((a, b) => b.detection.box.area - a.detection.box.area);
+    const main = dets[0], box = main.detection.box, P = main.landmarks.positions;
+    add('face', 'Face found', 'ok', Math.round(main.detection.score * 100) + '%');
+
+    const others = dets.slice(1).filter(d => d.detection.box.area > box.area * T.otherFace).length;
+    add('one', 'Only one person', others ? 'bad' : 'ok', others ? (others + 1) + ' faces' : '', 'Only the member should be in the photo.', 'group');
+
+    const mean = (a, b) => { let x = 0, y = 0; for (let i = a; i <= b; i++) { x += P[i].x; y += P[i].y; } const n = b - a + 1; return {x:x / n, y:y / n}; };
+    const eL = mean(36, 41), eR = mean(42, 47), nose = P[30];
+    const iod = Math.hypot(eR.x - eL.x, eR.y - eL.y), mid = {x:(eL.x + eR.x) / 2, y:(eL.y + eR.y) / 2};
+
+    const yaw = (nose.x - mid.x) / iod, roll = Math.atan2(eR.y - eL.y, eR.x - eL.x) * 180 / Math.PI;
+    out.metrics.yaw = yaw.toFixed(2); out.metrics['roll°'] = roll.toFixed(0);
+    const poseSt = Math.abs(yaw) > T.yawBad ? 'bad' : (Math.abs(yaw) > T.yawWarn || Math.abs(roll) > T.rollWarn) ? 'warn' : 'ok';
+    add('pose', 'Facing the camera', poseSt, poseSt === 'ok' ? '' : (Math.abs(yaw) > T.yawWarn ? 'turned' : 'tilted'), 'Look straight at the camera with your head level.', 'frame');
+
+    out.metrics['face px'] = Math.round(box.height);
+    const sizeSt = box.height < T.faceBad ? 'bad' : box.height < T.faceWarn ? 'warn' : 'ok';
+    add('size', 'Face big enough', sizeSt, sizeSt === 'ok' ? '' : Math.round(box.height) + 'px', 'Move closer, or use a higher-resolution photo, so your face fills the frame.', 'frame');
+
+    // eyes vs cheeks: sunglasses make the eye area dark and flat
+    const eyeStat = (a, b, c) => {
+      const ew = Math.hypot(P[b].x - P[a].x, P[b].y - P[a].y), e = mean(a, a + 5);
+      const eye = stats(e.x - ew * .65, e.y - ew * .35, ew * 1.3, ew * .7);
+      const cheek = stats(e.x - ew * .45, e.y + iod * .55 - ew * .25, ew * .9, ew * .5);
+      return {eye, cheek};
+    };
+    const L1 = eyeStat(36, 39), R1 = eyeStat(42, 45);
+    let eyeSt = 'ok', ratio = 1, eyeSd = 99;
+    if (L1.eye && R1.eye && L1.cheek && R1.cheek) {
+      ratio = (L1.eye.m + R1.eye.m) / (L1.cheek.m + R1.cheek.m);
+      eyeSd = (L1.eye.sd + R1.eye.sd) / 2;
+      eyeSt = (ratio < T.eyeBad && eyeSd < T.eyeSdBad) ? 'bad' : ((ratio < T.eyeWarn && eyeSd < T.eyeSdWarn) || ratio < T.eyeDark) ? 'warn' : 'ok';
+    }
+    out.metrics['eye/cheek'] = ratio.toFixed(2); out.metrics['eye sd'] = eyeSd.toFixed(0);
+    add('eyes', 'Eyes visible (no sunglasses)', eyeSt, eyeSt === 'ok' ? '' : 'eye area dark', R.glasses.guest, 'glasses');
+
+    // lighting on the cheeks and nose
+    const skin = stats(eL.x - iod * .3, mid.y + iod * .15, iod * 1.6, Math.max(4, P[57].y - mid.y - iod * .15));
+    const lum = skin ? skin.m : 0;
+    out.metrics['face brightness'] = lum.toFixed(0);
+    const lumSt = (lum < T.lumBad[0] || lum > T.lumBad[1]) ? 'bad' : (lum < T.lumWarn[0] || lum > T.lumWarn[1]) ? 'warn' : 'ok';
+    add('light', 'Good lighting', lumSt, lumSt === 'ok' ? '' : (lum < 128 ? 'dark' : 'overexposed'), lum < 128 ? R.dark.guest : 'Your photo is too bright. Move out of direct sunlight or turn off the flash.', 'dark');
+
+    // sharpness: variance of the Laplacian on the face, normalised to 128px wide
+    const tw = 128, th = Math.max(8, Math.round(128 * box.height / box.width));
+    const tc = document.createElement('canvas'); tc.width = tw; tc.height = th;
+    const tctx = tc.getContext('2d', {willReadFrequently:true});
+    tctx.drawImage(cv, box.x, box.y, box.width, box.height, 0, 0, tw, th);
+    const td = tctx.getImageData(0, 0, tw, th).data, gray = new Float32Array(tw * th);
+    for (let i = 0; i < tw * th; i++) gray[i] = .299 * td[i * 4] + .587 * td[i * 4 + 1] + .114 * td[i * 4 + 2];
+    let ls = 0, ls2 = 0, ln = 0;
+    for (let y = 1; y < th - 1; y++) for (let x = 1; x < tw - 1; x++) {
+      const i = y * tw + x, v = gray[i - 1] + gray[i + 1] + gray[i - tw] + gray[i + tw] - 4 * gray[i];
+      ls += v; ls2 += v * v; ln++;
+    }
+    const sharp = ln ? ls2 / ln - (ls / ln) ** 2 : 0;
+    out.metrics.sharpness = sharp.toFixed(0);
+    const sharpSt = sharp < T.sharpBad ? 'bad' : sharp < T.sharpWarn ? 'warn' : 'ok';
+    add('sharp', 'Sharp', sharpSt, sharpSt === 'ok' ? '' : 'soft', R.blur.guest, 'blur');
+
+    // head covering: forehead colour vs cheek colour (hair over the forehead also trips this, so it only ever flags for staff)
+    const browTop = Math.min(...P.slice(17, 27).map(p => p.y)), fh = nose.y - browTop;
+    const fore = stats(P[19].x, browTop - fh * .55, P[24].x - P[19].x, fh * .4);
+    let hatSt = 'ok', dist = 0;
+    if (fore && skin && fore.n > 20) {
+      dist = Math.hypot(fore.r - skin.r, fore.g - skin.g, fore.b - skin.b);
+      hatSt = dist > T.hatWarn ? 'warn' : 'ok';
+    }
+    out.metrics['forehead colour diff'] = dist.toFixed(0);
+    add('hat', 'No head covering', hatSt, hatSt === 'ok' ? '' : 'unsure', R.hat.guest, 'hat');
+
+    // lighting and sharpness come first so a dark or blurry photo isn't reported as sunglasses
+    const ORDER = ['face', 'one', 'size', 'pose', 'light', 'sharp', 'eyes', 'hat'];
+    out.checks.sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+
+    // auto-crop to a 4:5 head-and-shoulders frame
+    let ch = box.height * 2.3, cw = ch * .8;
+    if (ch > H) { ch = H; cw = ch * .8; }
+    if (cw > W) { cw = W; ch = cw / .8; }
+    const cx = Math.min(Math.max(box.x + box.width / 2 - cw / 2, 0), W - cw);
+    const cy = Math.min(Math.max(box.y - box.height * .55, 0), H - ch);
+    const oc = document.createElement('canvas'); oc.width = 400; oc.height = 500;
+    oc.getContext('2d').drawImage(cv, cx, cy, cw, ch, 0, 0, 400, 500);
+    out.crop = oc.toDataURL('image/jpeg', .88);
+    return out;
+  }
+  window.__photoChecks = {analyzePhoto, loadFace, T};
+
   /* ---------- guest view ---------- */
   const STATUS = {
     approved:['ok', 'Active'], awaiting:['idle', 'Needs a photo'], denied:['bad', 'Retake needed'],
@@ -677,8 +855,34 @@
         inner = `${denied}
           <div class="guide"><span class="ph-empty" style="border:0;border-radius:0">📷</span><div class="oval" aria-hidden="true"></div></div>
           <p class="note" style="margin:0;text-align:center">Head and shoulders in the oval · no sunglasses or hats · face a light</p>
-          <span class="label">Prototype: pick a sample photo to upload</span>
-          <div class="samples">${SAMPLES.map(s => `<button class="sample" data-act="g-pick" data-k="${s.key}"><span class="thumb">${portrait(s.photo, s.label)}</span>${s.label}</button>`).join('')}</div>`;
+          <div class="uploadrow">
+            <label class="btn primary" for="g-file">Choose a photo</label>
+            <input type="file" id="g-file" accept="image/*" hidden>
+            <span class="note" style="text-align:center">Prototype: your photo is checked in this browser and isn't uploaded or saved anywhere.</span>
+            ${g.error ? `<div class="result bad"><span>${esc(g.error)}</span></div>` : ''}
+            ${g.modelState === 'loading' ? '<div class="loading"><span class="spinner"></span>Loading face detection (about 6 MB, first time only)…</div>' : ''}
+          </div>
+          <details class="scripted"><summary>No photo handy? Use a scripted sample</summary>
+            <div class="samples">${SAMPLES.map(s => `<button class="sample" data-act="g-pick" data-k="${s.key}"><span class="thumb">${portrait(s.photo, s.label)}</span>${s.label}</button>`).join('')}</div>
+            <p class="note" style="margin:8px 0 0">These drawings aren't analysed. Each has a fixed result.</p>
+          </details>`;
+      } else if (g.checking.real) {
+        const a = g.checking.analysis;
+        const shown = a ? a.checks.slice(0, g.step) : [];
+        const rows = a ? shown.map(c => `<li><span class="ic ${c.status}">${ICON[c.status]}</span><span>${c.label}</span><span class="pct">${esc(c.value)}</span></li>`).join('') : '';
+        let res = '';
+        const first = g.result === 'retake' ? a.checks.find(c => c.status === 'bad') : null;
+        const warns = a ? a.checks.filter(c => c.status === 'warn') : [];
+        if (g.result === 'retake') res = `<div class="result bad"><h3>Fix one thing before you submit</h3><span>${esc(first.guest)}</span></div><button class="btn primary" data-act="g-again">Choose another photo</button>`;
+        else if (g.result === 'approved') res = `<div class="result ok"><h3>You're all set</h3><span>${esc(m.name.split(' ')[0])}'s pass is active. Approved automatically because the photo passed every check.</span></div><button class="btn" data-act="g-home">Back to my memberships</button>`;
+        else if (g.result === 'review') res = `<div class="result warn"><h3>Submitted for a quick look</h3><span>${warns.length ? `We weren't sure about: ${warns.map(c => c.label.toLowerCase()).join(', ')}. A staff member will check it.` : 'A staff member checks every photo.'} Most photos are reviewed within a few hours. We'll email you.</span></div><div class="actions"><button class="btn" data-act="g-home">Back to my memberships</button><button class="btn" data-act="g-toqueue">See it in the review queue</button></div>`;
+        else if (g.result === 'provisional') res = `<div class="result ok"><h3>Pass active</h3><span>Show your pass at the gate. On your first visit the attendant will check that the photo matches.</span></div><button class="btn" data-act="g-home">Back to my memberships</button>`;
+        const metrics = a && g.result ? `<details class="metrics"><summary>Check details (for tuning)</summary><dl>${Object.entries(a.metrics).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></details>` : '';
+        const img = a ? (a.crop || a.orig) : g.checking.preview;
+        inner = `<div class="guide">${img ? `<img src="${img}" alt="Your photo">` : ''}</div>
+          ${a ? '' : '<div class="loading"><span class="spinner"></span>' + (g.modelState === 'loading' ? 'Loading face detection (about 6 MB, first time only)…' : 'Checking your photo…') + '</div>'}
+          ${a && a.crop ? '<span class="note" style="text-align:center;margin-top:-6px">Cropped automatically to fit the card</span>' : ''}
+          <ul class="checks" aria-live="polite">${rows}</ul>${res}${metrics}`;
       } else {
         const s = g.checking;
         const rows = GUEST_CHECKS.map((c, i) => {
@@ -713,10 +917,11 @@
       <div class="side">
         <div class="explain"><h2>Bad photos get fixed before they're submitted</h2>
           <ol>
-            <li>Checks run in the guest's browser as soon as they choose a photo. The photo isn't sent to another service.</li>
+            <li>Choose a real photo. Face detection (face-api, an open-source library) runs in this browser, finds the face and its landmarks, then checks the person count, pose, size, eye area, lighting, sharpness and forehead. The photo isn't sent anywhere.</li>
             <li>A clear failure (no face, sunglasses, dark, blurry, two people) shows the fix right away. Nothing reaches staff.</li>
             <li>A photo that passes every check is approved straight away in Assisted mode.</li>
-            <li>A photo the checks aren't sure about (the baseball cap sample) goes to staff.</li>
+            <li>A photo the checks aren't sure about goes to the staff review queue with the reason, so you can see both sides.</li>
+            <li>The sunglasses and head-covering checks are rough rules based on brightness and colour around the eyes and forehead. Expect some misses and false flags.</li>
           </ol>
           <p class="note" style="margin:0">Current mode: <b>${MODES[S.mode].name}</b>. Change it under Settings to see the guest experience in each mode.</p>
         </div>
@@ -750,6 +955,65 @@
       setTimeout(tick, 220);
     };
     setTimeout(tick, 260);
+  }
+
+  let uploadSeq = 0;
+  async function runRealCheck(file){
+    const g = S.guest, m = g.members.find(x => x.id === g.active);
+    g.error = null; g.result = null; g.step = 0;
+    let cv;
+    try { cv = await fileToCanvas(file); }
+    catch (err) { g.error = err.message; g.checking = null; renderGuest(); return; }
+    g.checking = {real:true, preview:cv.toDataURL('image/jpeg', .7), analysis:null};
+    if (!window.faceapi || !faceReady) g.modelState = 'loading';
+    renderGuest();
+    let a;
+    try { a = await analyzePhoto(cv); g.modelState = 'ready'; }
+    catch (err) {
+      g.modelState = 'failed'; g.checking = null;
+      g.error = 'Face detection couldn\'t load (' + err.message + '). Try again, or use a scripted sample below.';
+      renderGuest(); return;
+    }
+    if (S.guest.active !== m.id) return;
+    g.checking.analysis = a;
+    const bad = a.checks.some(c => c.status === 'bad'), warn = a.checks.some(c => c.status === 'warn');
+    const finish = () => {
+      if (bad) { g.result = 'retake'; S.returned++; }
+      else {
+        g.result = S.mode === 'gate' ? 'provisional' : (S.mode === 'manual' || warn) ? 'review' : 'approved';
+        m.photo = {img:a.crop, orig:a.orig};
+        m.status = g.result; delete m.reason;
+        if (g.result === 'approved') S.autoApproved++;
+        if (g.result === 'review') queueUpload(m, a);
+      }
+      renderGuest(); renderGate(); renderQueue();
+    };
+    const tick = () => {
+      g.step++;
+      renderGuest();
+      if (g.step < a.checks.length && !(a.checks[g.step - 1].status === 'bad' && a.checks[g.step - 1].key === 'face')) setTimeout(tick, 160);
+      else { g.step = a.checks.length; finish(); }
+    };
+    setTimeout(tick, 120);
+  }
+  function queueUpload(m, a){
+    const id = 'u' + (++uploadSeq);
+    const warns = a.checks.filter(c => c.status === 'warn');
+    const first = warns[0];
+    const item = {
+      id, real:true, name:m.name, age:m.role, product:m.product, order:'RR-41901' + uploadSeq,
+      household:'Rivera household · 3 members', by:'Alex Rivera (purchaser)', mins:0,
+      photo:{img:a.crop, orig:a.orig},
+      flag: first ? first.label + ': ' + first.value : 'Manual mode: every photo is reviewed',
+      sev:'warn',
+      hint: first ? `Real photo uploaded from the guest view. The checks weren't sure about: ${warns.map(c => c.label.toLowerCase()).join(', ')}.` : 'Real photo uploaded from the guest view. It passed every check; Manual mode sends every photo to staff.',
+      checks: a.checks.map(c => [c.status, c.label, c.value]),
+      suggest: [...new Set(warns.map(c => c.reason).filter(Boolean))]
+    };
+    S.queue.unshift(item);
+    S.reasons[id] = new Set(item.suggest);
+    S.crop[id] = {orig:false, zoom:1};
+    S.sel = 0;
   }
 
   /* ---------- gate view ---------- */
@@ -892,9 +1156,11 @@
         toast(flagged.length ? `Sample confirmed. ${flagged.length} photo${flagged.length > 1 ? 's' : ''} moved to Needs review.` : 'Sample confirmed. All automatic approvals looked right.');
         break;
       }
-      case 'g-open': S.guest.screen = 'upload'; S.guest.active = a.dataset.id; S.guest.checking = null; S.guest.result = null; show('guest'); try { history.replaceState(null, '', '#guest'); } catch (_) {} break;
+      case 'g-open': S.guest.screen = 'upload'; S.guest.active = a.dataset.id; S.guest.checking = null; S.guest.result = null; S.guest.error = null; show('guest');
+        if (!window.faceapi) { S.guest.modelState = 'loading'; renderGuest(); loadFace().then(() => { S.guest.modelState = 'ready'; if (!S.guest.checking) renderGuest(); }, () => { S.guest.modelState = 'failed'; }); } try { history.replaceState(null, '', '#guest'); } catch (_) {} break;
       case 'g-home': S.guest.screen = 'home'; S.guest.checking = null; renderGuest(); break;
-      case 'g-again': S.guest.checking = null; S.guest.result = null; renderGuest(); break;
+      case 'g-again': S.guest.checking = null; S.guest.result = null; S.guest.error = null; renderGuest(); break;
+      case 'g-toqueue': S.qtab = 'review'; S.sel = 0; show('queue'); try { history.replaceState(null, '', '#queue'); } catch (_) {} break;
       case 'g-pick': runCheck(SAMPLES.find(s => s.key === a.dataset.k)); break;
       case 'gate-scan': S.gate.sel = a.dataset.id; S.gate.note = null; renderGate(); break;
       case 'gate-capture': case 'gate-match': {
@@ -923,6 +1189,7 @@
   });
   document.addEventListener('change', e => {
     const t = e.target;
+    if (t.id === 'g-file' && t.files && t.files[0]) { runRealCheck(t.files[0]); t.value = ''; return; }
     if (t.name === 'mode') { setMode(t.value); renderSettings(); }
     if (t.id === 's-val') { S.settings.validation = t.checked; toast(t.checked ? 'Photo validation on for Season Pass – Gold 2027.' : 'Photo validation off. Uploaded photos are accepted without review.'); }
     if (t.id === 's-crop') S.settings.autocrop = t.checked;
